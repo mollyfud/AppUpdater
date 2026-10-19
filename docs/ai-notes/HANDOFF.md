@@ -2,6 +2,20 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-20 - Antigravity on DADSLAPTOP (Live Cloudflare deployment & successful OTA update test on Android)
+- **Did:**
+  - Deployed Cloudflare Worker `molly-app-updater` live to `https://molly-app-updater.mollysoft.workers.dev` bound to R2 bucket `private-app-releases`.
+  - Configured Worker secrets: `APP_UPDATER_TOKEN` and `HMAC_SECRET`.
+  - Updated default gateway URL across Switchboard App and PikminFilter to `https://molly-app-updater.mollysoft.workers.dev`.
+  - Added persistent TopAppBar Settings (⚙) icon and modal dialog to PikminFilter with in-app token configuration and update check.
+  - Bumped PikminFilter to dummy version `v0.6.1+12`, built release APK, and published to R2 using `publish-release.ps1`.
+  - Tested OTA update live on Android phone: checked for update, verified changelog dialog, downloaded from R2, verified SHA-256 checksum in memory, and completed in-place APK installation.
+- **Versions:** PikminFilter v0.6.0+11 -> v0.6.1+12 (verified OTA update).
+- **Decisions:** Persistent TopAppBar Settings (⚙) icon established as standard pattern for companion apps.
+- **Verified:** Live OTA upgrade on Molly's Android device (v0.6.0 -> v0.6.1).
+- **Not verified / next:** Roll out `app_updater_flutter` across remaining Flutter apps (TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse).
+- **Gotchas:** `publish-release.ps1` supports both `-ProjectPath` and `-ProjectDir`.
+
 ### 2026-10-20 - Antigravity on DADSLAPTOP (Phase 4: Pilot rollout across Switchboard Flutter and PikminFilter Android/Kotlin)
 - **Did:**
   - **Switchboard Flutter App:**

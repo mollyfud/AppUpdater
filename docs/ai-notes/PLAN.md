@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-20 by Antigravity on DADSLAPTOP (Phase 1 and Phase 2 built and verified)
+Updated: 2026-10-20 by Antigravity on DADSLAPTOP (Live Cloudflare deployment & end-to-end OTA update verified on phone)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -13,17 +13,16 @@ Updated: 2026-10-20 by Antigravity on DADSLAPTOP (Phase 1 and Phase 2 built and 
 ## Parts
 - [done] Project scaffolding and design (Phase 1 - Contract and Cloudflare gateway) - repo initialized, docs/DESIGN.md and contracts/version-manifest.schema.json written
 - [done] Contract app-updater/1 (Phase 1 - Contract and Cloudflare gateway) - 1.0.0, contracts/version-manifest.schema.json and contracts/README.md
-- [done] Cloudflare Worker and R2 gateway (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, worker/src/index.ts, /api/v1/version, /api/v1/update, signed /api/v1/download, 4 unit tests passing
-- [done] Publisher script publish-release.ps1 (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, SHA-256, version.json generation, R2 upload via Wrangler or AWS CLI, ntfy notification
+- [done] Cloudflare Worker and R2 gateway (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, worker deployed at https://molly-app-updater.mollysoft.workers.dev, private-app-releases R2 bucket live
+- [done] Publisher script publish-release.ps1 (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, SHA-256, version.json generation, R2 upload via Wrangler, ntfy notification
 - [done] Flutter SDK app_updater_flutter (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, UpdateService streaming SHA-256, UpdatePromptDialog, CheckForUpdateTile, 8 tests + flutter analyze passing
 - [done] Android Kotlin SDK app-updater-android (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, pure Kotlin JSON parser (no org.json), UpdateClient streaming SHA-256, ApkInstaller, Compose UpdatePromptDialog + CheckForUpdateRow, JUnit tests
 - [done] Switchboard build template and publish_apk action (Phase 3 - Switchboard build and publish integration) - flutter-build-apk.ps1, spoke 0.37.0 publish_apk action with tests passing
-- [done] Pilot rollout Switchboard and PikminFilter (Phase 4 - Rollout across client apps) - Switchboard Flutter app and PikminFilter native Kotlin app integrated and verified
+- [done] Pilot rollout Switchboard and PikminFilter (Phase 4 - Rollout across client apps) - Switchboard Flutter app and PikminFilter native Kotlin app integrated; live end-to-end OTA update v0.6.0 -> v0.6.1 verified on Android phone!
 - [not-started] Rollout remaining Flutter apps (Phase 4 - Rollout across client apps) - TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, MollysWordPressStatsFlutterApp, SystemPulse
 
 ## Next
-- Deploy the Cloudflare Worker (`npx wrangler r2 bucket create private-app-releases` and `npx wrangler deploy` in `C:\antigravity\AppUpdater\worker`)
-- Roll out `app_updater_flutter` to remaining apps: TennisSpark, NotebookMS, AFLStatsSystem, etc.
+- Roll out `app_updater_flutter` across remaining client apps: TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse.
 
 ## Needs your call
 
