@@ -1,0 +1,19 @@
+# Local secrets and config
+.env
+.env.*
+*.key
+*.pem
+*.secret
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs and scratch
+*.log
+scratch/
