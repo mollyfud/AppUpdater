@@ -4,6 +4,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
+    [Alias("ProjectPath")]
     [string]$ProjectDir,
 
     [string]$AppId = "",
