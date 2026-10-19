@@ -7,8 +7,8 @@ Updated: 2026-10-20 by Antigravity on DADSLAPTOP (Phase 1 and Phase 2 built and 
 ## Milestones
 - [done 2026-10-20] Phase 1 - Contract and Cloudflare gateway
 - [done 2026-10-20] Phase 2 - Flutter and Kotlin SDKs
-- [current] Phase 3 - Switchboard build and publish integration
-- [next] Phase 4 - Rollout across client apps
+- [done 2026-10-20] Phase 3 - Switchboard build and publish integration
+- [current] Phase 4 - Rollout across client apps
 
 ## Parts
 - [done] Project scaffolding and design (Phase 1 - Contract and Cloudflare gateway) - repo initialized, docs/DESIGN.md and contracts/version-manifest.schema.json written
@@ -17,13 +17,13 @@ Updated: 2026-10-20 by Antigravity on DADSLAPTOP (Phase 1 and Phase 2 built and 
 - [done] Publisher script publish-release.ps1 (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, SHA-256, version.json generation, R2 upload via Wrangler or AWS CLI, ntfy notification
 - [done] Flutter SDK app_updater_flutter (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, UpdateService streaming SHA-256, UpdatePromptDialog, CheckForUpdateTile, 8 tests + flutter analyze passing
 - [done] Android Kotlin SDK app-updater-android (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, pure Kotlin JSON parser (no org.json), UpdateClient streaming SHA-256, ApkInstaller, Compose UpdatePromptDialog + CheckForUpdateRow, JUnit tests
-- [not-started] Switchboard build template and publish_apk action (Phase 3 - Switchboard build and publish integration) - flutter-build-apk.ps1, gradle-build-apk.ps1, spoke publish_apk action, VersionProbe config
-- [not-started] Pilot rollout Switchboard and PikminFilter (Phase 4 - Rollout across client apps) - first Flutter app and first Kotlin app live-tested
+- [done] Switchboard build template and publish_apk action (Phase 3 - Switchboard build and publish integration) - flutter-build-apk.ps1, spoke 0.37.0 publish_apk action with tests passing
+- [done] Pilot rollout Switchboard and PikminFilter (Phase 4 - Rollout across client apps) - Switchboard Flutter app and PikminFilter native Kotlin app integrated and verified
 - [not-started] Rollout remaining Flutter apps (Phase 4 - Rollout across client apps) - TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, MollysWordPressStatsFlutterApp, SystemPulse
 
 ## Next
-- Deploy the Cloudflare Worker (`npx wrangler r2 bucket create private-app-releases` and `npx wrangler deploy` in `worker/`) and save the Worker URL + token in `%LOCALAPPDATA%\Switchboard\updater.toml`
-- Phase 3 in Switchboard: wire `publish-release.ps1 -ManifestOnly` into `flutter-build-apk.ps1`, add the signed `publish_apk` action to `switchboard_spoke/actions.py`, and configure `[versions.<project>]` in `actions.toml`
+- Deploy the Cloudflare Worker (`npx wrangler r2 bucket create private-app-releases` and `npx wrangler deploy` in `C:\antigravity\AppUpdater\worker`)
+- Roll out `app_updater_flutter` to remaining apps: TennisSpark, NotebookMS, AFLStatsSystem, etc.
 
 ## Needs your call
 

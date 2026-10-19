@@ -2,6 +2,30 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-20 - Antigravity on DADSLAPTOP (Phase 4: Pilot rollout across Switchboard Flutter and PikminFilter Android/Kotlin)
+- **Did:**
+  - **Switchboard Flutter App:**
+    - Added `app_updater_flutter` path dependency in `packages/switchboard_app/pubspec.yaml` (relaxed `package_info_plus` constraint to `>=8.0.0 <11.0.0`).
+    - Configured Android permissions (`REQUEST_INSTALL_PACKAGES`, `INTERNET`) and `FileProvider` (`file_paths.xml`) in `AndroidManifest.xml`.
+    - Added `updaterUrl` and `updaterToken` fields to `HubSettings` in `lib/services/settings.dart` with default gateway URL `https://updater.mollyfud.com`.
+    - Added `CheckForUpdateTile` and gateway/token settings fields to `lib/views/settings_view.dart`.
+    - Integrated on-launch update check via `UpdatePromptDialog.checkOnLaunch` in `lib/main.dart`.
+    - Added `test/updater_integration_test.dart`.
+  - **PikminFilter (Android/Kotlin):**
+    - Included `:app-updater-android` library module in `settings.gradle.kts` and added library plugin to `build.gradle.kts`.
+    - Added `app-updater-android` dependency to `app/build.gradle.kts`.
+    - Configured `INTERNET`, `REQUEST_INSTALL_PACKAGES` permissions and `FileProvider` (`file_paths.xml`) in `app/src/main/AndroidManifest.xml`.
+    - Integrated `UpdateClient` and Compose `CheckForUpdateRow` into `MainActivity.kt`.
+    - Updated `build-apk.ps1` to compute SHA-256 and generate `dist/version.json` on release builds matching `app-updater/1`.
+  - Updated `PLAN.md` and `CHANGELOG.md`.
+- **Versions:** no product bump to SDKs (pilot app integrations).
+- **Decisions:** Followed Phase 4 plan.
+- **Verified:**
+  - Switchboard App: `flutter test test/updater_integration_test.dart` (2 passed), `flutter test test/settings_defaults_dropdown_test.dart test/settings_idle_default_test.dart test/settings_stale_model_test.dart` (22 passed), `flutter analyze` (0 issues).
+  - PikminFilter: `.\gradlew.bat testDebugUnitTest` (44 tasks, all tests passed in `:app` and `:app-updater-android`), `.\build-apk.ps1 -SkipTests` (generated debug/release APK + `dist/version.json` with SHA-256 matching `app-updater/1`).
+- **Not verified / next:** Deploy the Cloudflare Worker + R2 bucket live, set the shared token, and roll out to the remaining Flutter client apps (TennisSpark, NotebookMS, AFLStatsSystem, etc.).
+- **Gotchas:** `InputDecoration` in Flutter requires non-`const` when referencing dynamic text styles; `FileProvider` authorities must match `<packageName>.fileprovider`.
+
 ### 2026-10-20 - Antigravity on DADSLAPTOP (Phase 1 & Phase 2: Cloudflare Worker, publish-release.ps1, Flutter SDK, and Android/Kotlin SDK)
 - **Did:**
   - **Phase 1 (Cloudflare Worker & Publisher Script):**
