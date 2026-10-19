@@ -4,6 +4,11 @@
 *.key
 *.pem
 *.secret
+*.jks
+*.keystore
+key.properties
+updater.toml
+.dev.vars
 
 # OS & Editor files
 .DS_Store
@@ -17,3 +22,20 @@ desktop.ini
 # Logs and scratch
 *.log
 scratch/
+
+# Node / Cloudflare Worker
+node_modules/
+.wrangler/
+dist/
+out/
+
+# Flutter & Dart
+.dart_tool/
+.packages
+build/
+*.apk
+
+# Android / Gradle / Kotlin
+.gradle/
+local.properties
+*.iml

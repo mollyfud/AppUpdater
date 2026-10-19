@@ -1,8 +1,12 @@
 # AppUpdater
 
-Private in-app update gateway (Cloudflare Worker + R2), app-updater/1 contract, publisher script, and client SDKs (Flutter + Android/Kotlin)
+Private in-app update gateway (**Cloudflare Worker + R2**), `app-updater/1` manifest contract, release publisher script (`scripts/publish-release.ps1`), and reusable client SDKs for **Flutter** (`packages/app_updater_flutter`) and **native Android / Kotlin** (`packages/app-updater-android`).
 
-## AI Instructions & Rules
-All rules for AI agents (Claude Code, Antigravity) are defined in [`AGENTS.md`](./AGENTS.md).
-Project session history is logged in [`docs/ai-notes/HANDOFF.md`](./docs/ai-notes/HANDOFF.md).
-Cross-project tasks are tracked in [`docs/ai-notes/INBOX.md`](./docs/ai-notes/INBOX.md).
+## Structure
+- [`contracts/`](contracts/README.md) — `app-updater/1` JSON schema (`version-manifest.schema.json`) and API contract.
+- [`docs/DESIGN.md`](docs/DESIGN.md) — Architecture, SDK specifications, and Switchboard integration.
+- [`docs/ai-notes/PLAN.md`](docs/ai-notes/PLAN.md) — Project map (milestones, parts, decisions).
+- `worker/` — Cloudflare Worker gateway (`GET /api/v1/version/:appId`, `GET /api/v1/update/:appId`, `GET /api/v1/download`).
+- `scripts/` — `publish-release.ps1` (uploads APK + `version.json` to R2 and sends an `ntfy` notification).
+- `packages/app_updater_flutter/` — Shared Flutter updater package (on-launch check, update modal dialog, and "Check for Update" settings tile).
+- `packages/app-updater-android/` — Shared native Android/Kotlin updater module (`kotlinx.serialization`, `OkHttp` streaming SHA-256 verification, `FileProvider` installer, Jetpack Compose UI).

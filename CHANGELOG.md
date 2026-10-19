@@ -1,9 +1,8 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to **AppUpdater** will be documented in this file.
 
 ## [0.1.0] - 2026-10-20
-### Added
-- Initial project scaffolding with standard AI rules, memory, and skills.
+- Initial project scaffolding (`C:\antigravity\AppUpdater`) and registration in `C:\antigravity\AGENTS.md`.
+- Defined `app-updater/1` v1.0.0 contract (`contracts/version-manifest.schema.json` and `contracts/README.md`).
+- Added architecture and implementation plan (`docs/DESIGN.md` and `docs/ai-notes/PLAN.md`) recording Molly's decisions (D-0001 to D-0004).

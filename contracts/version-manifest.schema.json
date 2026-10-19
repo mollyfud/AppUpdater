@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antigravity.local/contracts/app-updater/1/version-manifest.schema.json",
+  "title": "AppReleaseManifest",
+  "description": "Contract app-updater/1 (v1.0.0): release manifest stored at <appId>/version.json in R2 and returned by GET /api/v1/update/:appId.",
+  "type": "object",
+  "required": [
+    "schema",
+    "appId",
+    "project",
+    "versionName",
+    "versionCode",
+    "minRequiredVersionCode",
+    "releaseDate",
+    "releaseNotes",
+    "apkKey",
+    "sha256",
+    "fileSize"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "app-updater/1"
+    },
+    "appId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z0-9_]+)+$",
+      "description": "Android applicationId / package name (e.g. com.molly.pikminfilter)."
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Workspace project name in C:\\antigravity (e.g. PikminFilter, Switchboard)."
+    },
+    "versionName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Human-readable SemVer string (e.g. 1.3.0)."
+    },
+    "versionCode": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonically increasing build integer used for update comparisons."
+    },
+    "minRequiredVersionCode": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "If installed versionCode < minRequiredVersionCode, the update dialog is mandatory."
+    },
+    "releaseDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp when the release was published."
+    },
+    "releaseNotes": {
+      "type": "string",
+      "maxLength": 4000,
+      "description": "Plain text or bullet list of changes shown in the update prompt dialog."
+    },
+    "apkKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Object key in the R2 bucket for the primary Android APK."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "description": "Lowercase hex SHA-256 digest of the APK file."
+    },
+    "fileSize": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Size of the APK file in bytes."
+    },
+    "downloadUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Short-lived HMAC-signed download URL injected by the Cloudflare Worker on GET /api/v1/update/:appId."
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "Optional per-target artifact map (e.g. android-arm64, windows-x64) for future multi-ABI or desktop updates.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["key", "sha256", "fileSize"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+          "fileSize": { "type": "integer", "minimum": 1 },
+          "downloadUrl": { "type": "string", "format": "uri" }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}
