@@ -8,7 +8,7 @@ Updated: 2026-10-20 by Antigravity on DADSLAPTOP (Live Cloudflare deployment & e
 - [done 2026-10-20] Phase 1 - Contract and Cloudflare gateway
 - [done 2026-10-20] Phase 2 - Flutter and Kotlin SDKs
 - [done 2026-10-20] Phase 3 - Switchboard build and publish integration
-- [current] Phase 4 - Rollout across client apps
+- [done 2026-10-20] Phase 4 - Rollout across client apps
 
 ## Parts
 - [done] Project scaffolding and design (Phase 1 - Contract and Cloudflare gateway) - repo initialized, docs/DESIGN.md and contracts/version-manifest.schema.json written
@@ -19,10 +19,10 @@ Updated: 2026-10-20 by Antigravity on DADSLAPTOP (Live Cloudflare deployment & e
 - [done] Android Kotlin SDK app-updater-android (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, pure Kotlin JSON parser (no org.json), UpdateClient streaming SHA-256, ApkInstaller, Compose UpdatePromptDialog + CheckForUpdateRow, JUnit tests
 - [done] Switchboard build template and publish_apk action (Phase 3 - Switchboard build and publish integration) - flutter-build-apk.ps1, spoke 0.37.0 publish_apk action with tests passing
 - [done] Pilot rollout Switchboard and PikminFilter (Phase 4 - Rollout across client apps) - Switchboard Flutter app and PikminFilter native Kotlin app integrated; live end-to-end OTA update v0.6.0 -> v0.6.1 verified on Android phone!
-- [not-started] Rollout remaining Flutter apps (Phase 4 - Rollout across client apps) - TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, MollysWordPressStatsFlutterApp, SystemPulse
+- [done] Rollout remaining Flutter apps (Phase 4 - Rollout across client apps) - TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, MollysWordPressStatsFlutterApp (Site Pulse), SystemPulse all integrated, tested, built, version.json emitted, and published to R2 bucket.
 
 ## Next
-- Roll out `app_updater_flutter` across remaining client apps: TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse.
+- Monitor initial in-app update checks on device for rolled-out apps.
 
 ## Needs your call
 

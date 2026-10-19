@@ -2,19 +2,28 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
-### 2026-10-20 - Antigravity on DADSLAPTOP (Live Cloudflare deployment & successful OTA update test on Android)
+### 2026-10-20 - Antigravity on DADSLAPTOP (Full client app rollout completed across all Flutter apps)
 - **Did:**
-  - Deployed Cloudflare Worker `molly-app-updater` live to `https://molly-app-updater.mollysoft.workers.dev` bound to R2 bucket `private-app-releases`.
-  - Configured Worker secrets: `APP_UPDATER_TOKEN` and `HMAC_SECRET`.
-  - Updated default gateway URL across Switchboard App and PikminFilter to `https://molly-app-updater.mollysoft.workers.dev`.
-  - Added persistent TopAppBar Settings (⚙) icon and modal dialog to PikminFilter with in-app token configuration and update check.
-  - Bumped PikminFilter to dummy version `v0.6.1+12`, built release APK, and published to R2 using `publish-release.ps1`.
-  - Tested OTA update live on Android phone: checked for update, verified changelog dialog, downloaded from R2, verified SHA-256 checksum in memory, and completed in-place APK installation.
-- **Versions:** PikminFilter v0.6.0+11 -> v0.6.1+12 (verified OTA update).
-- **Decisions:** Persistent TopAppBar Settings (⚙) icon established as standard pattern for companion apps.
-- **Verified:** Live OTA upgrade on Molly's Android device (v0.6.0 -> v0.6.1).
-- **Not verified / next:** Roll out `app_updater_flutter` across remaining Flutter apps (TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse).
-- **Gotchas:** `publish-release.ps1` supports both `-ProjectPath` and `-ProjectDir`.
+  - Completed `app_updater_flutter` integration across all remaining client applications:
+    - **TennisSpark:** integrated `app_updater_flutter`, `FileProvider` + `REQUEST_INSTALL_PACKAGES`, `AdaptiveShell` launch check, `SettingsScreen` updater card + token config dialog, updated `build-apk.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.hawkspod.tennisspark_app` v0.7.0+9). Committed (`09c3f0c`).
+    - **NotebookMS:** integrated `app_updater_flutter`, `FileProvider` + permissions, `HomeScreen` launch check, `SettingsScreen` updater tile + token config dialog, updated `build-apk.ps1`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.hawkspod.notebookms_app` v0.8.0+9). Committed (`1bbbbf0`).
+    - **AFLStatsSystem:** integrated `app_updater_flutter`, `FileProvider` + permissions, `MainNavigator` launch check, top AppBar Settings (⚙) bottom sheet with token config dialog and `CheckForUpdateTile`, updated `build-dist.ps1` to compute SHA-256 and emit `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.example.afl_flutter_app` v1.5.17+29). Committed (`7b82435`).
+    - **WordpressLiveBlogger:** integrated `app_updater_flutter`, `FileProvider` + permissions, `AppShell` launch check, `BlogSelectorScreen` AppBar Settings (⚙) dialog with token config and `CheckForUpdateTile`, updated `build-all.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.hawkspod.liveblogger` v1.26.2+42). Committed (`751de1e`).
+    - **MollysWordPressStatsFlutterApp (Site Pulse):** integrated `app_updater_flutter`, `FileProvider` + permissions, `HomeShell` launch check, AppBar Settings (⚙) dialog with token config and `CheckForUpdateTile`, updated `build-dist.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.mollysstudio.sitepulse_app` v0.14.1+23). Committed (`1c6379d`).
+    - **SystemPulse:** integrated `app_updater_flutter`, `FileProvider` + permissions, `DashboardScreen` launch check, AppBar Settings (⚙) dialog with token config and `CheckForUpdateTile`, updated `build-apk.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.hawkspod.pulse.pulse_flutter_app` v1.4.3+16). Committed (`65a383d`).
+  - Added `.wrangler/` to `.gitignore` files to prevent caching artifacts in git.
+  - Updated `PLAN.md` to reflect Phase 4 completion.
+- **Versions:**
+  - TennisSpark: v0.7.0+9
+  - NotebookMS: v0.8.0+9
+  - AFLStatsSystem: v1.5.17+29
+  - WordpressLiveBlogger: v1.26.2+42
+  - Site Pulse: v0.14.1+23
+  - SystemPulse: v1.4.3+16
+- **Decisions:** Dual-delivery preserved everywhere (build scripts copy to Google Drive for device bootstrap and emit `dist/version.json` for Cloudflare R2 updates).
+- **Verified:** All test suites passed (`flutter test` across all 6 apps), all analyzers clean (`flutter analyze` with 0 issues), all release APKs compiled, SHA-256 hashes verified, manifests emitted, and both APKs and `version.json` successfully published to remote Cloudflare R2 bucket `private-app-releases` via Wrangler.
+- **Not verified / next:** Real-device checks as apps are opened on Android.
+- **Gotchas:** `UpdateService` requires non-null `authToken` (fall back to empty string `''` when unconfigured).
 
 ### 2026-10-20 - Antigravity on DADSLAPTOP (Phase 4: Pilot rollout across Switchboard Flutter and PikminFilter Android/Kotlin)
 - **Did:**
