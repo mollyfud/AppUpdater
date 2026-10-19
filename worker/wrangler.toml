@@ -1,0 +1,13 @@
+name = "molly-app-updater"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+
+[[r2_buckets]]
+binding = "RELEASES_BUCKET"
+bucket_name = "private-app-releases"
+
+[vars]
+# Also add APP_UPDATER_TOKEN and HMAC_SECRET via `wrangler secret put`:
+#   npx wrangler secret put APP_UPDATER_TOKEN
+#   npx wrangler secret put HMAC_SECRET
+TOKEN_TTL_SECONDS = "900"

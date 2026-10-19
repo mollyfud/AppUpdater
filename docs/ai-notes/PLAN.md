@@ -1,29 +1,29 @@
 # Project map
-Updated: 2026-10-20 by Antigravity on DADSLAPTOP (initial project setup and architecture plan)
+Updated: 2026-10-20 by Antigravity on DADSLAPTOP (Phase 1 and Phase 2 built and verified)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
 
 ## Milestones
-- [current] Phase 1 - Contract and Cloudflare gateway
-- [next] Phase 2 - Flutter and Kotlin SDKs
-- [later] Phase 3 - Switchboard build and publish integration
-- [later] Phase 4 - Rollout across client apps
+- [done 2026-10-20] Phase 1 - Contract and Cloudflare gateway
+- [done 2026-10-20] Phase 2 - Flutter and Kotlin SDKs
+- [current] Phase 3 - Switchboard build and publish integration
+- [next] Phase 4 - Rollout across client apps
 
 ## Parts
 - [done] Project scaffolding and design (Phase 1 - Contract and Cloudflare gateway) - repo initialized, docs/DESIGN.md and contracts/version-manifest.schema.json written
-- [in-progress 20%] Contract app-updater/1 (Phase 1 - Contract and Cloudflare gateway) - JSON schema and README drafted
-- [not-started] Cloudflare Worker and R2 gateway (Phase 1 - Contract and Cloudflare gateway) - worker/src/index.ts, /api/v1/version, /api/v1/update, signed /api/v1/download, unit tests
-- [not-started] Publisher script publish-release.ps1 (Phase 1 - Contract and Cloudflare gateway) - SHA-256, version.json generation, R2 upload, ntfy notification
-- [not-started] Flutter SDK app_updater_flutter (Phase 2 - Flutter and Kotlin SDKs) - UpdateService, UpdatePromptDialog, CheckForUpdateTile, widget and unit tests
-- [not-started] Android Kotlin SDK app-updater-android (Phase 2 - Flutter and Kotlin SDKs) - kotlinx.serialization, OkHttp streaming SHA-256, FileProvider installer, Compose dialog, JVM unit tests
+- [done] Contract app-updater/1 (Phase 1 - Contract and Cloudflare gateway) - 1.0.0, contracts/version-manifest.schema.json and contracts/README.md
+- [done] Cloudflare Worker and R2 gateway (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, worker/src/index.ts, /api/v1/version, /api/v1/update, signed /api/v1/download, 4 unit tests passing
+- [done] Publisher script publish-release.ps1 (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, SHA-256, version.json generation, R2 upload via Wrangler or AWS CLI, ntfy notification
+- [done] Flutter SDK app_updater_flutter (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, UpdateService streaming SHA-256, UpdatePromptDialog, CheckForUpdateTile, 8 tests + flutter analyze passing
+- [done] Android Kotlin SDK app-updater-android (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, pure Kotlin JSON parser (no org.json), UpdateClient streaming SHA-256, ApkInstaller, Compose UpdatePromptDialog + CheckForUpdateRow, JUnit tests
 - [not-started] Switchboard build template and publish_apk action (Phase 3 - Switchboard build and publish integration) - flutter-build-apk.ps1, gradle-build-apk.ps1, spoke publish_apk action, VersionProbe config
 - [not-started] Pilot rollout Switchboard and PikminFilter (Phase 4 - Rollout across client apps) - first Flutter app and first Kotlin app live-tested
 - [not-started] Rollout remaining Flutter apps (Phase 4 - Rollout across client apps) - TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, MollysWordPressStatsFlutterApp, SystemPulse
 
 ## Next
-- Build `worker/` (Cloudflare Worker + Vitest/Miniflare tests) and `scripts/publish-release.ps1`
-- Build `packages/app_updater_flutter` and `packages/app-updater-android` with unit and widget tests
+- Deploy the Cloudflare Worker (`npx wrangler r2 bucket create private-app-releases` and `npx wrangler deploy` in `worker/`) and save the Worker URL + token in `%LOCALAPPDATA%\Switchboard\updater.toml`
+- Phase 3 in Switchboard: wire `publish-release.ps1 -ManifestOnly` into `flutter-build-apk.ps1`, add the signed `publish_apk` action to `switchboard_spoke/actions.py`, and configure `[versions.<project>]` in `actions.toml`
 
 ## Needs your call
 

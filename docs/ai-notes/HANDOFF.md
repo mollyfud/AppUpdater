@@ -2,6 +2,27 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-20 - Antigravity on DADSLAPTOP (Phase 1 & Phase 2: Cloudflare Worker, publish-release.ps1, Flutter SDK, and Android/Kotlin SDK)
+- **Did:**
+  - **Phase 1 (Cloudflare Worker & Publisher Script):**
+    - Built `worker/src/index.ts`, `worker/wrangler.toml`, `worker/package.json`, `worker/tsconfig.json`, and `worker/test/index.test.ts`. Implements `GET /api/v1/version/:appId` (open read-only metadata for Switchboard's `VersionProbe`), `GET /api/v1/update/:appId` (constant-time Bearer token check + HMAC-SHA256 signed download URL), and `GET /api/v1/download` (streams APK from R2).
+    - Built `scripts/publish-release.ps1` (ASCII-only for Windows PowerShell 5.1): discovers `appId`, `versionName`, and `versionCode` from `build.gradle.kts` / `pubspec.yaml`, extracts the latest `CHANGELOG.md` entry, computes SHA-256, writes `dist/version.json`, uploads APK + `version.json` to Cloudflare R2 (via `wrangler r2 object put` or `aws s3 cp`), and posts an instant update notification to `ntfy`.
+  - **Phase 2 (Flutter & Android/Kotlin Client SDKs):**
+    - Built `packages/app_updater_flutter` (`lib/app_updater_flutter.dart`, `src/manifest.dart`, `src/update_service.dart`, `src/update_dialog.dart`, `src/check_update_tile.dart`, `test/app_updater_flutter_test.dart`). Uses streaming SHA-256 (`sha256.bind(apkFile.openRead())`), UTF-8 body decoding, `< 400px` mobile-safe `Wrap` buttons, and explicit light/dark color palettes verified at >= 4.5:1 contrast.
+    - Built `packages/app-updater-android` (`build.gradle.kts`, `AppReleaseManifest.kt`, `UpdateClient.kt`, `ApkInstaller.kt`, `ui/UpdatePromptDialog.kt`, `AppUpdaterTest.kt`). Uses a zero-dependency pure Kotlin JSON parser (no `org.json`) and single-pass `MessageDigest` SHA-256 verification.
+  - Updated `CHANGELOG.md` and `docs/ai-notes/PLAN.md` (marked Phase 1 and Phase 2 done).
+- **Versions:** contract `app-updater/1` 1.0.0, worker 0.1.0, `app_updater_flutter` 0.1.0, `app-updater-android` 0.1.0.
+- **Decisions:** Following Molly's decisions D-0001 through D-0004 (Cloudflare Worker + R2, single shared Bearer token, check on app start + `ntfy` push on publish + in-app `CheckForUpdateTile`/`CheckForUpdateRow`, Android APKs first).
+- **Verified:**
+  - Worker unit tests: `node --test test/index.test.ts` in `worker/` -> 4 passed.
+  - Publisher script smoke test: `powershell -File scripts\publish-release.ps1 -ManifestOnly` on a temp project -> generated valid `dist/version.json` with SHA-256 and changelog notes.
+  - Flutter SDK: `flutter test` (8 passed, including WCAG 4.5:1 light/dark contrast checks, streaming SHA-256 verification, and 360px mobile widget tests) and `flutter analyze` (0 issues).
+- **Not verified / next:**
+  - Live deployment of Cloudflare Worker + R2 bucket (`private-app-releases`) and setting `APP_UPDATER_TOKEN` / `HMAC_SECRET` secrets via Wrangler.
+  - Phase 3: Wire `publish-release.ps1` and the `publish_apk` action into `Switchboard`.
+  - Phase 4: Pilot rollout in `Switchboard` (Flutter) and `PikminFilter` (Kotlin, where `gradlew testDebugUnitTest` will also run `AppUpdaterTest.kt`).
+- **Gotchas:** `http.Response.body` in Dart defaults to `latin1` when no `charset` parameter is on the `Content-Type` header; `UpdateService.checkForUpdate` explicitly uses `utf8.decode(response.bodyBytes)` so bullet characters (`•`) in `releaseNotes` never fail to decode.
+
 ### 2026-10-20 - Antigravity on DADSLAPTOP (Initial project setup, contract app-updater/1, and design)
 - **Did:**
   - Scaffolded `C:\antigravity\AppUpdater` and registered it in `C:\antigravity\AGENTS.md`.
