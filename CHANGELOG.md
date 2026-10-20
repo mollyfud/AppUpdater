@@ -2,6 +2,14 @@
 
 All notable changes to **AppUpdater** will be documented in this file.
 
+## [app_updater_flutter 0.2.0] - 2026-10-20
+- **Behaviour change:** HTTP 404 from `GET /api/v1/update/:appId` is now an `error`, not `upToDate`. The Worker's JSON 404 (`App manifest not found`) gives `Server has no release for <appId> (HTTP 404)`; any other 404 (e.g. the plain-text route 404) gives `Update endpoint not found at <endpoint> (HTTP 404) - check the gateway URL`.
+- A newer build whose manifest has a `sha256` that isn't 64 chars or an empty `downloadUrl` is now an `error` ("... manifest is incomplete (sha256 length N, downloadUrl empty|ok)") instead of `upToDate`.
+- `UpdateCheckResult` gains optional `appId`, `endpoint`, `httpStatus`, `remoteVersionCode`, `remoteVersionName`, `missingSettings` and a shared one-line `summary` (e.g. `Up to date (local v0.7.0 build 9, server v0.7.0 build 9, HTTP 200)`). Existing factory calls keep working.
+- `UpdateService` keeps a token-free debug log of the last check (also sent to `debugPrint` with an `[app_updater]` prefix): new `lastCheckLog`, `lastCheckReport` and `lastResult`. The log never contains the token or the signed download URL (only its host); endpoints are logged without query strings.
+- `CheckForUpdateTile` shows `result.summary` and, with `showDetails` (default `true`), a "Details" button that opens the last check's report in a selectable dialog.
+- New `appUpdaterFlutterVersion` constant (`lib/src/update_service.dart`) reported in the log: bump it together with `pubspec.yaml`.
+
 ## [0.1.0] - 2026-10-20
 - Initial project scaffolding (`C:\antigravity\AppUpdater`) and registration in `C:\antigravity\AGENTS.md`.
 - Defined `app-updater/1` v1.0.0 contract (`contracts/version-manifest.schema.json` and `contracts/README.md`).

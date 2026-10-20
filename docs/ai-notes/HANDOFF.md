@@ -2,6 +2,23 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-20 - Claude Code on DADSLAPTOP (Diagnosable update check, app_updater_flutter 0.2.0)
+- **Did:** Switchboard work run for job 01M5B9Q600NZ8K6JGQ80A62JF3 (Switchboard commits it; no hash here).
+  - `lib/src/manifest.dart`: `UpdateCheckResult` gains optional `appId`, `endpoint`, `httpStatus`, `remoteVersionCode`, `remoteVersionName`, `missingSettings` and a `summary` getter. All factory params are optional named, so consumer code compiles unchanged.
+  - `lib/src/update_service.dart`: 404 is now an error (JSON `App manifest not found` -> "Server has no release for <appId> (HTTP 404)", anything else -> "Update endpoint not found at <endpoint> (HTTP 404) - check the gateway URL"); newer build with sha256 length != 64 or empty downloadUrl -> error "manifest is incomplete"; 401/403/other errors include the endpoint. Token-free per-check log (`_log` -> `debugPrint('[app_updater] ...')`), new `lastCheckLog`, `lastCheckReport`, `lastResult`, and `appUpdaterFlutterVersion` const.
+  - `lib/src/check_update_tile.dart`: status text = `result.summary`; new `showDetails` (default true) with a "Details" button (`check-for-update-details`) opening an `AlertDialog` with `SelectableText(lastCheckReport)`.
+  - Tests: 8 new (404 x2, incomplete manifest x2, unconfigured, log/redaction/reset, 404 tile light+dark), up-to-date widget test now checks the summary text and the Details dialog, contrast test covers the tile pairs on `notesBoxBackground`.
+  - `CHANGELOG.md`, `pubspec.yaml` 0.1.0 -> 0.2.0, `PLAN.md` (new milestone Phase 5, two parts, D-0005/D-0006, Next), inbox item removed.
+- **Versions:** `app_updater_flutter` 0.1.0 -> 0.2.0. Worker, contract, Kotlin SDK unchanged.
+- **Decisions:** Molly (2026-10-20): D-0005 include debug logging + stored last-check log; D-0006 Flutter only, Kotlin parity parked in PLAN.md. Added milestone "Phase 5 - Field diagnostics and hardening" so the new parts have a `[current]` milestone. Added `missingSettings` to the result (not in the plan's field list) so the unconfigured summary can name what is missing, as the plan asked.
+- **Verified:** `flutter test` in `packages/app_updater_flutter` -> 16 passed; `flutter analyze` -> no issues.
+- **Not verified / next:**
+  - Consumer smoke check (`flutter analyze` + `flutter test test/updater_integration_test.dart` in `Switchboard/packages/switchboard_app`) was NOT run: the run sandbox denied access outside this repo. Any consumer test asserting the old "You are up to date (...)" text or a 404 being up to date will now fail; the API itself is additive. Sent to Switchboard via the run's messages.
+  - Real diagnosis on the phone (rebuild TennisSpark, read Settings > App updates / Details). Sent to TennisSpark via the run's messages.
+  - Kotlin parity (PLAN part, not started).
+- **Inbox:** done - "from TennisSpark: update check says 'up to date' with no way to see why" (this entry).
+- **Gotchas:** `UpdatePromptDialog.checkOnLaunch` stays silent on errors, so the new 404/incomplete errors only surface via the tile or `lastCheckReport`, not on launch. The tile's updateAvailable text is unchanged ("Update vX (build N) is available!"). The log keeps the raw `buildNumber` string so a non-numeric build number (parsed as 0) is visible. Lead from planning: Switchboard's default gateway is `https://updater.mollyfud.com` while the live Worker is `https://molly-app-updater.mollysoft.workers.dev`; if an app copied that default, the new log will show "Update endpoint not found" or a connect error.
+
 ### 2026-10-20 - Antigravity on DADSLAPTOP (Full client app rollout completed across all Flutter apps)
 - **Did:**
   - Completed `app_updater_flutter` integration across all remaining client applications:

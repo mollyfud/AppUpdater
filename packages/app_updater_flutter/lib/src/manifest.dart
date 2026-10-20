@@ -102,12 +102,23 @@ enum UpdateCheckStatus {
   error,
 }
 
+/// Outcome of an update check. The optional diagnostic fields ([appId], [endpoint], [httpStatus],
+/// [remoteVersionCode], [remoteVersionName]) explain *why* the check ended the way it did.
+/// None of them ever holds the auth token or the signed download URL.
 class UpdateCheckResult {
   final UpdateCheckStatus status;
   final int currentVersionCode;
   final String currentVersionName;
   final AppReleaseManifest? manifest;
   final String? errorMessage;
+  final String? appId;
+  final String? endpoint;
+  final int? httpStatus;
+  final int? remoteVersionCode;
+  final String? remoteVersionName;
+
+  /// For [UpdateCheckStatus.unconfigured]: which settings are missing (e.g. `gateway URL`, `token`).
+  final List<String> missingSettings;
 
   const UpdateCheckResult._({
     required this.status,
@@ -115,52 +126,117 @@ class UpdateCheckResult {
     required this.currentVersionName,
     this.manifest,
     this.errorMessage,
+    this.appId,
+    this.endpoint,
+    this.httpStatus,
+    this.remoteVersionCode,
+    this.remoteVersionName,
+    this.missingSettings = const [],
   });
 
   factory UpdateCheckResult.upToDate({
     required int currentVersionCode,
     required String currentVersionName,
+    String? appId,
+    String? endpoint,
+    int? httpStatus,
+    int? remoteVersionCode,
+    String? remoteVersionName,
   }) =>
       UpdateCheckResult._(
         status: UpdateCheckStatus.upToDate,
         currentVersionCode: currentVersionCode,
         currentVersionName: currentVersionName,
+        appId: appId,
+        endpoint: endpoint,
+        httpStatus: httpStatus,
+        remoteVersionCode: remoteVersionCode,
+        remoteVersionName: remoteVersionName,
       );
 
   factory UpdateCheckResult.updateAvailable({
     required int currentVersionCode,
     required String currentVersionName,
     required AppReleaseManifest manifest,
+    String? appId,
+    String? endpoint,
+    int? httpStatus,
   }) =>
       UpdateCheckResult._(
         status: UpdateCheckStatus.updateAvailable,
         currentVersionCode: currentVersionCode,
         currentVersionName: currentVersionName,
         manifest: manifest,
+        appId: appId,
+        endpoint: endpoint,
+        httpStatus: httpStatus,
+        remoteVersionCode: manifest.versionCode,
+        remoteVersionName: manifest.versionName,
       );
 
   factory UpdateCheckResult.unconfigured({
     int currentVersionCode = 0,
     String currentVersionName = '',
+    String? appId,
+    List<String> missingSettings = const [],
   }) =>
       UpdateCheckResult._(
         status: UpdateCheckStatus.unconfigured,
         currentVersionCode: currentVersionCode,
         currentVersionName: currentVersionName,
+        appId: appId,
+        missingSettings: missingSettings,
       );
 
   factory UpdateCheckResult.error({
     required String message,
     int currentVersionCode = 0,
     String currentVersionName = '',
+    String? appId,
+    String? endpoint,
+    int? httpStatus,
+    int? remoteVersionCode,
+    String? remoteVersionName,
   }) =>
       UpdateCheckResult._(
         status: UpdateCheckStatus.error,
         currentVersionCode: currentVersionCode,
         currentVersionName: currentVersionName,
         errorMessage: message,
+        appId: appId,
+        endpoint: endpoint,
+        httpStatus: httpStatus,
+        remoteVersionCode: remoteVersionCode,
+        remoteVersionName: remoteVersionName,
       );
 
   bool get hasUpdate =>
       status == UpdateCheckStatus.updateAvailable && manifest != null;
+
+  /// One-line, user-facing explanation of the result, shared by [CheckForUpdateTile] and apps.
+  String get summary {
+    switch (status) {
+      case UpdateCheckStatus.upToDate:
+        final parts = <String>['local ${_describe(currentVersionName, currentVersionCode)}'];
+        if (remoteVersionCode != null) {
+          parts.add('server ${_describe(remoteVersionName ?? '', remoteVersionCode!)}');
+        }
+        if (httpStatus != null) parts.add('HTTP $httpStatus');
+        return 'Up to date (${parts.join(', ')})';
+      case UpdateCheckStatus.updateAvailable:
+        final remoteName = remoteVersionName ?? manifest?.versionName ?? '';
+        final remoteCode = remoteVersionCode ?? manifest?.versionCode ?? 0;
+        return 'Update available (local build $currentVersionCode, '
+            'server ${_describe(remoteName, remoteCode)})';
+      case UpdateCheckStatus.error:
+        return errorMessage ?? 'Update check failed.';
+      case UpdateCheckStatus.unconfigured:
+        const base = 'Update server URL or token is not configured on this device';
+        if (missingSettings.isEmpty) return '$base.';
+        return '$base (missing: ${missingSettings.join(', ')}).';
+    }
+  }
+
+  static String _describe(String name, int code) =>
+      name.isNotEmpty ? 'v$name build $code' : 'build $code';
 }

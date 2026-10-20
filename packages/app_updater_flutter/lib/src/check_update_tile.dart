@@ -11,11 +11,15 @@ class CheckForUpdateTile extends StatefulWidget {
   final String? appIdOverride;
   final String title;
 
+  /// Shows a "Details" button after a check that opens [UpdateService.lastCheckReport].
+  final bool showDetails;
+
   const CheckForUpdateTile({
     super.key,
     required this.updateService,
     this.appIdOverride,
     this.title = 'App Updates',
+    this.showDetails = true,
   });
 
   @override
@@ -60,24 +64,68 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
 
     setState(() {
       _isChecking = false;
-      switch (result.status) {
-        case UpdateCheckStatus.upToDate:
-          final ver = result.currentVersionName.isNotEmpty
-              ? 'v${result.currentVersionName} (${result.currentVersionCode})'
-              : 'build ${result.currentVersionCode}';
-          _statusMessage = 'You are up to date ($ver).';
-          _isError = false;
-        case UpdateCheckStatus.unconfigured:
-          _statusMessage =
-              'Update server URL or token is not configured on this device.';
-          _isError = true;
-        case UpdateCheckStatus.error:
-          _statusMessage = result.errorMessage ?? 'Update check failed.';
-          _isError = true;
-        case UpdateCheckStatus.updateAvailable:
-          break;
-      }
+      _statusMessage = result.summary;
+      _isError = result.status == UpdateCheckStatus.error ||
+          result.status == UpdateCheckStatus.unconfigured;
     });
+  }
+
+  Future<void> _showDetails() async {
+    final report = widget.updateService.lastCheckReport;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final palette =
+            UpdateDialogColors.forBrightness(Theme.of(dialogContext).brightness);
+        return AlertDialog(
+          backgroundColor: palette.dialogBackground,
+          surfaceTintColor: Colors.transparent,
+          title: Text(
+            'Last update check',
+            style: TextStyle(
+              color: palette.titleColor,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SelectableText(
+                  report.isNotEmpty ? report : 'No update check has run yet.',
+                  key: const Key('check-for-update-report'),
+                  style: TextStyle(
+                    color: palette.bodyColor,
+                    fontSize: 12,
+                    height: 1.4,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Wrap instead of Row so the action fits on < 400px widths
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    TextButton(
+                      key: const Key('check-for-update-details-close'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: palette.secondaryButtonText,
+                      ),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -133,6 +181,17 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
                 fontSize: 13,
               ),
             ),
+            if (widget.showDetails && !_isChecking)
+              TextButton(
+                key: const Key('check-for-update-details'),
+                style: TextButton.styleFrom(
+                  foregroundColor: palette.secondaryButtonText,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                ),
+                onPressed: _showDetails,
+                child: const Text('Details'),
+              ),
           ],
         ],
       ),

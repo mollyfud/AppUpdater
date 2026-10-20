@@ -43,6 +43,7 @@ Map<String, dynamic> _sampleManifestJson({
   int versionCode = 14,
   int minRequiredVersionCode = 12,
   String? sha256Override,
+  String? downloadUrlOverride,
 }) {
   final apkBytes = utf8.encode('MOCK_SIGNED_APK_BINARY');
   final computedSha = sha256.convert(apkBytes).toString();
@@ -58,9 +59,25 @@ Map<String, dynamic> _sampleManifestJson({
     'apkKey': 'com.molly.switchboard/builds/Switchboard-v1.3.0.apk',
     'sha256': sha256Override ?? computedSha,
     'fileSize': apkBytes.length,
-    'downloadUrl': 'https://updater.example.com/api/v1/download?key=apk&expires=9999999999&sig=abc',
+    'downloadUrl': downloadUrlOverride ??
+        'https://updater.example.com/api/v1/download?key=apk&expires=9999999999&sig=abc',
   };
 }
+
+UpdateService _serviceReturning(http.Response Function(http.Request req) respond) {
+  return UpdateService(
+    baseUrl: 'https://updater.example.com',
+    authToken: 'shared-token-123',
+    httpClient: MockClient((req) async => respond(req)),
+    packageInfoLoader: () async => _fakePackageInfo(buildNumber: '10'),
+  );
+}
+
+http.Response _jsonResponse(Object body, int status) => http.Response.bytes(
+      utf8.encode(jsonEncode(body)),
+      status,
+      headers: {'content-type': 'application/json; charset=utf-8'},
+    );
 
 void main() {
   group('UpdateDialogColors WCAG 4.5:1 Contrast Verification', () {
@@ -101,6 +118,22 @@ void main() {
           _contrastRatio(c.secondaryButtonText, c.dialogBackground),
           greaterThanOrEqualTo(4.5),
           reason: '${brightness.name} secondaryButtonText on dialogBackground',
+        );
+        // CheckForUpdateTile draws status text and the Details button on notesBoxBackground
+        expect(
+          _contrastRatio(c.bodyColor, c.notesBoxBackground),
+          greaterThanOrEqualTo(4.5),
+          reason: '${brightness.name} body on notesBoxBackground (tile status)',
+        );
+        expect(
+          _contrastRatio(c.errorBannerText, c.notesBoxBackground),
+          greaterThanOrEqualTo(4.5),
+          reason: '${brightness.name} errorBannerText on notesBoxBackground (tile error)',
+        );
+        expect(
+          _contrastRatio(c.secondaryButtonText, c.notesBoxBackground),
+          greaterThanOrEqualTo(4.5),
+          reason: '${brightness.name} secondaryButtonText on notesBoxBackground (Details)',
         );
       });
     }
@@ -152,6 +185,108 @@ void main() {
       final result = await service.checkForUpdate();
       expect(result.status, UpdateCheckStatus.upToDate);
       expect(result.hasUpdate, isFalse);
+      expect(result.remoteVersionCode, 10);
+      expect(result.remoteVersionName, '1.3.0');
+      expect(result.httpStatus, 200);
+      expect(result.appId, 'com.molly.switchboard');
+      expect(result.summary, contains('local v1.2.0 build 10'));
+      expect(result.summary, contains('server v1.3.0 build 10'));
+      expect(result.summary, contains('HTTP 200'));
+    });
+
+    test('404 with "App manifest not found" is an error naming the appId', () async {
+      final service = _serviceReturning(
+        (_) => _jsonResponse({'error': 'App manifest not found'}, 404),
+      );
+      final result = await service.checkForUpdate();
+      expect(result.status, UpdateCheckStatus.error);
+      expect(result.httpStatus, 404);
+      expect(result.errorMessage, contains('com.molly.switchboard'));
+      expect(result.errorMessage, contains('HTTP 404'));
+      expect(result.summary, 'Server has no release for com.molly.switchboard (HTTP 404)');
+    });
+
+    test('plain-text 404 is an error pointing at the gateway URL', () async {
+      final service = _serviceReturning((_) => http.Response('Not Found', 404));
+      final result = await service.checkForUpdate();
+      expect(result.status, UpdateCheckStatus.error);
+      expect(result.httpStatus, 404);
+      expect(
+        result.errorMessage,
+        contains('https://updater.example.com/api/v1/update/com.molly.switchboard'),
+      );
+      expect(result.errorMessage, contains('gateway URL'));
+    });
+
+    test('newer build with short sha256 is an error, not upToDate', () async {
+      final service = _serviceReturning(
+        (_) => _jsonResponse(_sampleManifestJson(versionCode: 14, sha256Override: 'abc'), 200),
+      );
+      final result = await service.checkForUpdate();
+      expect(result.status, UpdateCheckStatus.error);
+      expect(result.hasUpdate, isFalse);
+      expect(result.remoteVersionCode, 14);
+      expect(result.errorMessage, contains('sha256 length 3'));
+      expect(result.errorMessage, contains('downloadUrl ok'));
+    });
+
+    test('newer build with empty downloadUrl is an error, not upToDate', () async {
+      final service = _serviceReturning(
+        (_) => _jsonResponse(_sampleManifestJson(versionCode: 14, downloadUrlOverride: ''), 200),
+      );
+      final result = await service.checkForUpdate();
+      expect(result.status, UpdateCheckStatus.error);
+      expect(result.errorMessage, contains('downloadUrl empty'));
+    });
+
+    test('unconfigured result names the missing settings', () async {
+      final service = UpdateService(
+        baseUrl: '',
+        authToken: '',
+        httpClient: MockClient((_) async => fail('no request expected')),
+        packageInfoLoader: () async => _fakePackageInfo(),
+      );
+      final result = await service.checkForUpdate();
+      expect(result.status, UpdateCheckStatus.unconfigured);
+      expect(result.missingSettings, ['gateway URL', 'token']);
+      expect(result.summary, contains('missing: gateway URL, token'));
+    });
+
+    test('keeps a token-free log of the last check and resets it per check', () async {
+      var code = 10;
+      final service = _serviceReturning(
+        (_) => _jsonResponse(_sampleManifestJson(versionCode: code), 200),
+      );
+
+      expect(service.lastCheckReport, isEmpty);
+      expect(service.lastResult, isNull);
+
+      await service.checkForUpdate();
+      final report = service.lastCheckReport;
+      expect(report, contains('https://updater.example.com/api/v1/update/com.molly.switchboard'));
+      expect(report, contains('HTTP 200'));
+      expect(report, contains('local: v1.2.0 build 10'));
+      expect(report, contains('server: v1.3.0 build 10'));
+      expect(report, contains('outcome: upToDate'));
+      expect(report, contains('token: set (16 chars)'));
+      expect(report, contains('app_updater_flutter $appUpdaterFlutterVersion'));
+      expect(report, isNot(contains('shared-token-123')));
+      expect(report, isNot(contains('sig=abc')));
+      expect(report, isNot(contains('expires=')));
+      expect(report, contains('downloadUrl present (host updater.example.com)'));
+      expect(service.lastResult?.status, UpdateCheckStatus.upToDate);
+      expect(service.lastCheckLog.length, report.split('\n').length);
+
+      code = 14;
+      await service.checkForUpdate();
+      expect(service.lastCheckReport, contains('outcome: updateAvailable'));
+      expect(service.lastCheckReport, isNot(contains('outcome: upToDate')));
+      expect(
+        'check started'.allMatches(service.lastCheckReport).length,
+        1,
+      );
+      expect(service.lastCheckReport, isNot(contains('shared-token-123')));
+      expect(service.lastCheckReport, isNot(contains('sig=abc')));
     });
 
     test('streams download, verifies SHA-256, and invokes installer launcher', () async {
@@ -280,7 +415,24 @@ void main() {
         // 1. Tap Check for Update when already up to date
         await tester.tap(find.byKey(const Key('check-for-update-button')));
         await tester.pumpAndSettle();
-        expect(find.textContaining('You are up to date (v1.2.0 (10))'), findsOneWidget);
+        expect(
+          find.text('Up to date (local v1.2.0 build 10, server v1.3.0 build 10, HTTP 200)'),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+
+        // Details opens the token-free report of the last check
+        await tester.tap(find.byKey(const Key('check-for-update-details')));
+        await tester.pumpAndSettle();
+        final reportFinder = find.byKey(const Key('check-for-update-report'));
+        expect(reportFinder, findsOneWidget);
+        final reportText = tester.widget<SelectableText>(reportFinder).data!;
+        expect(reportText, contains('outcome: upToDate'));
+        expect(reportText, isNot(contains('shared-token-123')));
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.byKey(const Key('check-for-update-details-close')));
+        await tester.pumpAndSettle();
+        expect(reportFinder, findsNothing);
 
         // 2. Now simulate a new release published and tap Check for Update again
         returnUpdate = true;
@@ -295,6 +447,41 @@ void main() {
         await tester.tap(find.byKey(const Key('update-later-button')));
         await tester.pumpAndSettle();
         expect(find.text('Update v1.3.0 Available'), findsNothing);
+      });
+
+      testWidgets('CheckForUpdateTile shows the 404 reason instead of up to date (${brightness.name})', (tester) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final service = _serviceReturning(
+          (_) => _jsonResponse({'error': 'App manifest not found'}, 404),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(brightness: brightness),
+            home: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(12),
+                child: CheckForUpdateTile(updateService: service),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.byKey(const Key('check-for-update-button')));
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Server has no release for com.molly.switchboard (HTTP 404)'),
+          findsOneWidget,
+        );
+        expect(find.textContaining('Up to date'), findsNothing);
+        expect(find.byKey(const Key('check-for-update-details')), findsOneWidget);
+        expect(tester.takeException(), isNull);
       });
     }
   });
