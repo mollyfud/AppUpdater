@@ -4,7 +4,7 @@ import 'dart:math' as math;
 
 import 'package:app_updater_flutter/app_updater_flutter.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -374,6 +374,59 @@ void main() {
   });
 
   group('Widgets (UpdatePromptDialog & CheckForUpdateTile at 360px mobile width)', () {
+    for (final brightness in [Brightness.light, Brightness.dark]) {
+      testWidgets('material_ui app: tile follows theme and opens the Update Now dialog (${brightness.name})', (tester) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14), 200));
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(brightness: brightness),
+            home: Scaffold(body: CheckForUpdateTile(updateService: service)),
+          ),
+        );
+
+        final palette = UpdateDialogColors.forBrightness(brightness);
+        final tileBox = tester.widget<Container>(
+          find.ancestor(of: find.text('App Updates'), matching: find.byType(Container)).first,
+        );
+        expect((tileBox.decoration as BoxDecoration).color, palette.notesBoxBackground);
+
+        await tester.tap(find.byKey(const Key('check-for-update-button')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('Update Now'), findsOneWidget);
+        final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
+        expect(dialog.backgroundColor, palette.dialogBackground);
+      });
+    }
+
+    testWidgets('dialog failure is shown in the tile status and the report', (tester) async {
+      final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14), 200));
+      // The tile sits above the Navigator (in MaterialApp.builder), so showDialog throws.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: const SizedBox(),
+          builder: (context, child) => Stack(
+            children: [
+              child!,
+              Material(child: Align(alignment: Alignment.topCenter, child: CheckForUpdateTile(updateService: service))),
+            ],
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const Key('check-for-update-button')));
+      await tester.pumpAndSettle();
+      final status = tester.widget<Text>(find.byKey(const Key('check-for-update-status'))).data!;
+      expect(status, contains('could not be shown'));
+      expect(service.lastCheckReport, contains('dialog error:'));
+    });
+
     for (final brightness in [Brightness.light, Brightness.dark]) {
       testWidgets('CheckForUpdateTile shows up-to-date message and opens dialog when update available (${brightness.name})', (tester) async {
         tester.view.physicalSize = const Size(360, 800);

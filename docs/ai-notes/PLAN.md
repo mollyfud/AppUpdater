@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-20 by Claude Code (job 01M5B9Q600NZ8K6JGQ80A62JF3, follow-up run: rollout steps handed to TennisSpark and Molly)
+Updated: 2026-10-21 by Claude Code (material_ui fix, app_updater_flutter 0.3.0)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -22,9 +22,11 @@ Updated: 2026-10-20 by Claude Code (job 01M5B9Q600NZ8K6JGQ80A62JF3, follow-up ru
 - [done] Pilot rollout Switchboard and PikminFilter (Phase 4 - Rollout across client apps) - Switchboard Flutter app and PikminFilter native Kotlin app integrated; live end-to-end OTA update v0.6.0 -> v0.6.1 verified on Android phone!
 - [done] Rollout remaining Flutter apps (Phase 4 - Rollout across client apps) - TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, MollysWordPressStatsFlutterApp (Site Pulse), SystemPulse all integrated, tested, built, version.json emitted, and published to R2 bucket.
 - [done] Diagnosable update check, Flutter SDK 0.2.0 (Phase 5 - Field diagnostics and hardening) - 404 and incomplete manifest are errors, result summary with local/server build + HTTP status, token-free lastCheckLog/lastCheckReport, tile Details dialog; 16 tests + analyze passing
+- [done] material_ui compatibility, Flutter SDK 0.3.0 (Phase 5 - Field diagnostics and hardening) - imports material_ui so the dialog opens and the tile follows the theme on Flutter 3.47; showDialog errors surface in tile and report; committed locally, not pushed or tagged
 - [not-started] Kotlin SDK parity: 404 and incomplete manifest as errors, diagnostics + log (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt:94 and :114-125, parked by D-0006
 
 ## Next
+- Molly: push and tag AppUpdater (0.3.0 is committed locally only), then rebuild TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse and the Switchboard app on Flutter 3.47 against it
 - Molly: send the hub message to TennisSpark and run a TennisSpark job (Details view, gateway URL https://molly-app-updater.mollysoft.workers.dev, app id com.hawkspod.tennisspark_app, bump past build 11), build it, sideload once from Google Drive, then read Settings > App updates > Details
 - Then publish that build plus one more and confirm the phone self-updates without Google Drive
 - Then Kotlin SDK parity for app-updater-android

@@ -2,6 +2,11 @@
 
 All notable changes to **AppUpdater** will be documented in this file.
 
+## [app_updater_flutter 0.3.0] - 2026-10-21
+- **Fix (blocking):** the package now imports `package:material_ui/material_ui.dart` instead of `flutter/material.dart` (new dependency `material_ui: ^1.6.0`). On Flutter 3.47 Material lives in `material_ui` with its own `Theme` and `MaterialLocalizations`; the old import made `showDialog` throw "No MaterialLocalizations found" inside material_ui apps (no update dialog ever opened) and made the tile render with the default light theme in dark apps. **Apps on Flutter 3.47 must rebuild against this version.**
+- `CheckForUpdateTile` and `UpdatePromptDialog.checkOnLaunch` now catch `showDialog` failures: the tile shows an error status and the failure is added to `lastCheckReport` (`dialog error: ...`); the launch check stays silent but logs it. New `UpdateService.recordDialogFailure`.
+- Tests: material_ui `MaterialApp` light/dark tile + "Update Now" dialog test (also checks the tile follows the app theme), and a dialog-failure test.
+
 ## [app_updater_flutter 0.2.0] - 2026-10-20
 - **Behaviour change:** HTTP 404 from `GET /api/v1/update/:appId` is now an `error`, not `upToDate`. The Worker's JSON 404 (`App manifest not found`) gives `Server has no release for <appId> (HTTP 404)`; any other 404 (e.g. the plain-text route 404) gives `Update endpoint not found at <endpoint> (HTTP 404) - check the gateway URL`.
 - A newer build whose manifest has a `sha256` that isn't 64 chars or an empty `downloadUrl` is now an `error` ("... manifest is incomplete (sha256 length N, downloadUrl empty|ok)") instead of `upToDate`.

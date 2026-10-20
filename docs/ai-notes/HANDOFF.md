@@ -2,6 +2,15 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-21 - Claude Code (material_ui fix, app_updater_flutter 0.3.0)
+- **Did:** Side session started from TennisSpark work. Replaced `flutter/material.dart` with `material_ui/material_ui.dart` in `lib/src/check_update_tile.dart`, `lib/src/update_dialog.dart` and the test; added `material_ui: ^1.6.0`. Wrapped both `showDialog` calls (tile `_runCheck`, `checkOnLaunch`) in try/catch; new `UpdateService.recordDialogFailure` writes `dialog error: ...` to the report, the tile shows an error status. Bumped `appUpdaterFlutterVersion` and pubspec to 0.3.0, CHANGELOG, PLAN. Commit: see git log (local only).
+- **Versions:** `app_updater_flutter` 0.2.0 -> 0.3.0.
+- **Decisions:** Molly asked: commit locally, no push, no tag. Kept `Theme`-based palette unchanged (the import fix makes `Theme.of` read the app's theme).
+- **Verified:** `flutter analyze` clean; `flutter test` in the package (incl. new material_ui light/dark dialog tests and dialog-failure test).
+- **Not verified / next:** Not run on a phone. Push and tag are pending (Molly). TennisSpark and the other Flutter apps on Flutter 3.47 (NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse, Switchboard app) must rebuild against it. Apps still on Flutter < 3.47 can't resolve `material_ui` the same way; untested.
+- **Inbox:** done - "from TennisSpark: update dialog never opens in material_ui apps" (this entry); the push/tag part is left to Molly.
+- **Gotchas:** `material_ui` constraint raises the package's effective Flutter floor (the pubspec `flutter: >=3.24.0` is now optimistic).
+
 ### 2026-10-20 - Claude Code (Follow-up run: get the new update check onto the phone)
 - **Did:** Switchboard work run for job 01M5B9Q600NZ8K6JGQ80A62JF3 (Switchboard commits it; no hash here). The approved plan says no more AppUpdater code changes; all five steps happen in TennisSpark, in Switchboard, or on Molly's phone, which this run can't reach. Only change here: `docs/ai-notes/PLAN.md` `Updated:` line and Next rewritten to name the TennisSpark job and the sideload/self-update check.
 - **Versions:** no product change (`app_updater_flutter` stays 0.2.0).

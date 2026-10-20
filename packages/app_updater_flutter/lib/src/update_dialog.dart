@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'manifest.dart';
 import 'update_service.dart';
@@ -92,14 +92,18 @@ class UpdatePromptDialog extends StatefulWidget {
       appIdOverride: appIdOverride,
     );
     if (result.hasUpdate && context.mounted) {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: !result.manifest!.isMandatory,
-        builder: (_) => UpdatePromptDialog(
-          manifest: result.manifest!,
-          updateService: updateService,
-        ),
-      );
+      try {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: !result.manifest!.isMandatory,
+          builder: (_) => UpdatePromptDialog(
+            manifest: result.manifest!,
+            updateService: updateService,
+          ),
+        );
+      } catch (e, st) {
+        updateService.recordDialogFailure(e, st);
+      }
     }
     return result;
   }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'manifest.dart';
 import 'update_dialog.dart';
@@ -51,14 +51,24 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
             'Update v${result.manifest!.versionName} (build ${result.manifest!.versionCode}) is available!';
         _isError = false;
       });
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: !result.manifest!.isMandatory,
-        builder: (_) => UpdatePromptDialog(
-          manifest: result.manifest!,
-          updateService: widget.updateService,
-        ),
-      );
+      try {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: !result.manifest!.isMandatory,
+          builder: (_) => UpdatePromptDialog(
+            manifest: result.manifest!,
+            updateService: widget.updateService,
+          ),
+        );
+      } catch (e, st) {
+        widget.updateService.recordDialogFailure(e, st);
+        if (!mounted) return;
+        setState(() {
+          _statusMessage =
+              'Update v${result.manifest!.versionName} is available but the update dialog could not be shown: $e';
+          _isError = true;
+        });
+      }
       return;
     }
 

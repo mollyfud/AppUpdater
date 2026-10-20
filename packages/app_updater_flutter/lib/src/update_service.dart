@@ -11,7 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'manifest.dart';
 
 /// SDK version reported in the update-check log. Bump together with `pubspec.yaml`.
-const appUpdaterFlutterVersion = '0.2.0';
+const appUpdaterFlutterVersion = '0.3.0';
 
 typedef ApkInstallerLauncher = Future<void> Function(String apkFilePath);
 
@@ -46,6 +46,11 @@ class UpdateService {
 
   /// [lastCheckLog] joined with newlines, ready for a selectable/copyable text box in Settings.
   String get lastCheckReport => _lastCheckLog.join('\n');
+
+  /// Records that showing the update dialog failed, so it appears in [lastCheckReport].
+  void recordDialogFailure(Object error, StackTrace stack) {
+    _log('dialog error: $error');
+  }
 
   void _log(String line) {
     final now = DateTime.now();
