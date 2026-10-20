@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-20 by Claude Code on DADSLAPTOP (job 01M5B9Q600NZ8K6JGQ80A62JF3, diagnosable Flutter update check)
+Updated: 2026-10-20 by Claude Code (job 01M5B9Q600NZ8K6JGQ80A62JF3, follow-up run: rollout steps handed to TennisSpark and Molly)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -25,7 +25,8 @@ Updated: 2026-10-20 by Claude Code on DADSLAPTOP (job 01M5B9Q600NZ8K6JGQ80A62JF3
 - [not-started] Kotlin SDK parity: 404 and incomplete manifest as errors, diagnostics + log (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt:94 and :114-125, parked by D-0006
 
 ## Next
-- Rebuild TennisSpark with app_updater_flutter 0.2.0 and read Settings > App updates (status + Details) on Molly's phone to find why build 9 doesn't see build 11
+- Molly: send the hub message to TennisSpark and run a TennisSpark job (Details view, gateway URL https://molly-app-updater.mollysoft.workers.dev, app id com.hawkspod.tennisspark_app, bump past build 11), build it, sideload once from Google Drive, then read Settings > App updates > Details
+- Then publish that build plus one more and confirm the phone self-updates without Google Drive
 - Then Kotlin SDK parity for app-updater-android
 
 ## Needs your call

@@ -2,6 +2,14 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-20 - Claude Code (Follow-up run: get the new update check onto the phone)
+- **Did:** Switchboard work run for job 01M5B9Q600NZ8K6JGQ80A62JF3 (Switchboard commits it; no hash here). The approved plan says no more AppUpdater code changes; all five steps happen in TennisSpark, in Switchboard, or on Molly's phone, which this run can't reach. Only change here: `docs/ai-notes/PLAN.md` `Updated:` line and Next rewritten to name the TennisSpark job and the sideload/self-update check.
+- **Versions:** no product change (`app_updater_flutter` stays 0.2.0).
+- **Decisions:** none new. No new messages, as the plan says: the TennisSpark and Switchboard messages from the previous run are still waiting on the hub for Molly to send.
+- **Verified:** `flutter test` in `packages/app_updater_flutter` -> 16 passed (0.2.0 is the state TennisSpark will pick up via its path dependency).
+- **Not verified / next:** Plan milestones 1-5 aren't done (send the TennisSpark message and run its job, build, sideload, read Details, check self-update). They need Molly and the TennisSpark project.
+- **Gotchas:** none.
+
 ### 2026-10-20 - Claude Code on DADSLAPTOP (Diagnosable update check, app_updater_flutter 0.2.0)
 - **Did:** Switchboard work run for job 01M5B9Q600NZ8K6JGQ80A62JF3 (Switchboard commits it; no hash here).
   - `lib/src/manifest.dart`: `UpdateCheckResult` gains optional `appId`, `endpoint`, `httpStatus`, `remoteVersionCode`, `remoteVersionName`, `missingSettings` and a `summary` getter. All factory params are optional named, so consumer code compiles unchanged.
