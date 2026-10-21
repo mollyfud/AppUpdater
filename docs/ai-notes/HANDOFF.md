@@ -2,6 +2,36 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-22 - Claude Code (Custom domain update.aflspace.com in wrangler.toml; local commit)
+- **Did:** `worker/wrangler.toml`: `routes = [{ pattern = "update.aflspace.com", custom_domain = true }]` and explicit `workers_dev = true`. Committed all of the 2026-10-21 sharing work plus this, locally (no push).
+- **Versions:** no product change (deploy config only).
+- **Decisions:** Molly: front the gateway with `update.aflspace.com` (aflspace.com is in her Cloudflare account), add it to wrangler.toml, commit locally. workers.dev kept on because installed apps have that address in their Settings. `updater.toml` `gateway_url` should become `https://update.aflspace.com` so invite links use it.
+- **Verified:** `wrangler deploy --dry-run` accepts the config. The custom domain itself is NOT live until the next `npx wrangler deploy` (Molly); then check `https://update.aflspace.com/health`.
+- **Not verified / next:** deploy steps from the entry below. `update.aflspace.com` must have no existing DNS record or the custom-domain attach fails. Switchboard's default gateway (`https://updater.mollyfud.com`, does not resolve) could switch to this domain - Molly to decide (Switchboard inbox not written).
+- **Gotchas:** none.
+
+### 2026-10-21 - Claude Code (App sharing built: Worker 0.2.0, contract app-updater/1 1.1.0)
+- **Did:** Built steps A-C of `docs/design/sharing-and-store.md`.
+  - Worker: `src/access.ts` (grant hashing/validity), `src/store-page.ts` (store HTML/JS, palette, CSP headers), `src/version.ts`; `src/index.ts` adds grant auth on `/update/:appId`, `GET /api/v1/catalog`, `GET /store` + `/store.js`, `GET /` -> `/store`, admin API `/api/v1/admin/{apps,grants,grants/:id/revoke,listing/:appId}`, `Content-Disposition` on downloads, `worker` in `/health`. `package.json` 0.1.0 -> 0.2.0, `wrangler.toml` comment for the new secret.
+  - Scripts: `scripts/grant-access.ps1` (create / -List / -Revoke by name or id), `scripts/set-listing.ps1` (-Shareable/-Unshare, -Title, -Summary, -List), shared `scripts/updater-admin.ps1`. Config from env `APP_UPDATER_URL` / `APP_UPDATER_ADMIN_TOKEN` or `gateway_url` / `admin_token` in `%LOCALAPPDATA%\Switchboard\updater.toml`.
+  - Contract: `contracts/README.md` 1.1.0 section 4, new `access-grant.schema.json`, `store-listing.schema.json`. Manifest schema, both SDKs and `publish-release.ps1` unchanged.
+  - AGENTS.md (sharing rule + Worker export convention), CHANGELOG, PLAN (Phase 6, D-0007..D-0009 decided, I-0002 planned), design doc Decision section. Not committed.
+- **Versions:** Worker 0.1.0 -> 0.2.0; contract app-updater/1 1.0.0 -> 1.1.0. SDKs unchanged.
+- **Decisions:** Molly: "take the default for all decisions" -> D-0007 grants + store page, D-0008 R2 `_grants/`, D-0009 keep master token. My deviations from the proposal (in the design doc): listing in its own file (publishes rewrite version.json); grants via an admin API with a separate admin secret (Wrangler can't list R2; phone token mustn't mint grants); no icons yet.
+- **Verified:** `npm test` in `worker/` -> 33 pass (incl. contrast 4.5:1 light/dark, export guard). `wrangler deploy --dry-run` bundles (25.7 KiB). End-to-end on `wrangler dev --local` (made-up test secrets via `--var`, seeded fake releases in local R2): both scripts in Windows PowerShell 5.1 and PowerShell 7 (create with warnings, set listing, list, revoke by name, unknown name error); store page in the browser pane at 375px light + dark (no horizontal scroll, token stripped from the address bar, only shared app shown, `["*"]` grant still hides unshared app, revoked token -> login with message, invite opened in an open tab reloads). Download checked by fetching the signed URL from the page (200, filename header), not by saving a file.
+- **Not verified / next:** NOT deployed; no real grant exists. Real phone install from the store page (Android browser download + "install unknown apps") and pasting a grant token into an app's Settings are untested. Molly's steps: (1) `npx wrangler secret put APP_UPDATER_ADMIN_TOKEN` in `worker/` (new random value); (2) add `gateway_url` and `admin_token` to `%LOCALAPPDATA%\Switchboard\updater.toml` on each PC that manages grants; (3) `npx wrangler deploy` in `worker/`, check `/health` shows `"worker":"0.2.0"` and an app still updates with the owner token; (4) `set-listing.ps1 -AppId <id> -Shareable -Title ...`, then `grant-access.ps1 -Name ... -Apps <id>`.
+- **Inbox:** TennisSpark "go public, then tag" item left in place (Molly's call).
+- **Gotchas:** First local run found that workerd refuses a non-function named export from `src/index.ts` (unit tests didn't catch it) - fixed and guarded by a test. A grant for an app that isn't marked shareable silently shows nothing to that person (the create output warns). `com.example.afl_flutter_app` should be renamed before it is shared. Local test state lives only in the session scratchpad.
+
+### 2026-10-21 - Claude Code (Design proposal: sharing apps + poor man's app store)
+- **Did:** Molly asked how to share an app with someone who must present a token first, and whether to build a small app store. Wrote `docs/design/sharing-and-store.md` (findings, 4 options, recommended 3-step plan: per-person grants in the Worker, `grant-access.ps1`, catalog endpoint + token-gated store page). Added I-0002 and D-0007..D-0009 to `PLAN.md`. Not committed.
+- **Versions:** no product change.
+- **Decisions:** none yet - all open as D-0007..D-0009 with defaults.
+- **Verified:** read `worker/src/index.ts`, the contract and the Flutter SDK token handling to confirm the SDKs need no change for per-person tokens. Nothing built or tested.
+- **Not verified / next:** Molly's calls on D-0007..D-0009; then Worker 0.2.0 (grants), the script, contract 1.1.0 + store page.
+- **Inbox:** left the TennisSpark "go public, then tag" item in place (push/visibility is Molly's call).
+- **Gotchas:** none.
+
 ### 2026-10-21 - Claude Code (material_ui fix, app_updater_flutter 0.3.0)
 - **Did:** Side session started from TennisSpark work. Replaced `flutter/material.dart` with `material_ui/material_ui.dart` in `lib/src/check_update_tile.dart`, `lib/src/update_dialog.dart` and the test; added `material_ui: ^1.6.0`. Wrapped both `showDialog` calls (tile `_runCheck`, `checkOnLaunch`) in try/catch; new `UpdateService.recordDialogFailure` writes `dialog error: ...` to the report, the tile shows an error status. Bumped `appUpdaterFlutterVersion` and pubspec to 0.3.0, CHANGELOG, PLAN. Commit: see git log (local only).
 - **Versions:** `app_updater_flutter` 0.2.0 -> 0.3.0.

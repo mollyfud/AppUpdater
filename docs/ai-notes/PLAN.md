@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-21 by Claude Code (material_ui fix, app_updater_flutter 0.3.0)
+Updated: 2026-10-22 by Claude Code (custom domain update.aflspace.com in wrangler.toml)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -10,6 +10,7 @@ Updated: 2026-10-21 by Claude Code (material_ui fix, app_updater_flutter 0.3.0)
 - [done 2026-10-20] Phase 3 - Switchboard build and publish integration
 - [done 2026-10-20] Phase 4 - Rollout across client apps
 - [current] Phase 5 - Field diagnostics and hardening
+- [next] Phase 6 - Sharing apps with other people
 
 ## Parts
 - [done] Project scaffolding and design (Phase 1 - Contract and Cloudflare gateway) - repo initialized, docs/DESIGN.md and contracts/version-manifest.schema.json written
@@ -23,9 +24,12 @@ Updated: 2026-10-21 by Claude Code (material_ui fix, app_updater_flutter 0.3.0)
 - [done] Rollout remaining Flutter apps (Phase 4 - Rollout across client apps) - TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, MollysWordPressStatsFlutterApp (Site Pulse), SystemPulse all integrated, tested, built, version.json emitted, and published to R2 bucket.
 - [done] Diagnosable update check, Flutter SDK 0.2.0 (Phase 5 - Field diagnostics and hardening) - 404 and incomplete manifest are errors, result summary with local/server build + HTTP status, token-free lastCheckLog/lastCheckReport, tile Details dialog; 16 tests + analyze passing
 - [done] material_ui compatibility, Flutter SDK 0.3.0 (Phase 5 - Field diagnostics and hardening) - imports material_ui so the dialog opens and the tile follows the theme on Flutter 3.47; showDialog errors surface in tile and report; committed locally, not pushed or tagged
+- [done] Access grants, admin API and store page, Worker 0.2.0 / contract 1.1.0 (Phase 6 - Sharing apps with other people) - 33 worker tests; scripts and page checked end-to-end on local wrangler dev; not deployed
+- [waiting] Deploy sharing and first real share (Phase 6 - Sharing apps with other people) - waiting on Molly: admin secret, updater.toml keys, wrangler deploy, real phone install
 - [not-started] Kotlin SDK parity: 404 and incomplete manifest as errors, diagnostics + log (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt:94 and :114-125, parked by D-0006
 
 ## Next
+- Molly: deploy sharing (Worker 0.2.0) and the update.aflspace.com custom domain: set the new APP_UPDATER_ADMIN_TOKEN secret, add gateway_url (https://update.aflspace.com) + admin_token to updater.toml, deploy, check /health on the new domain, then a first real grant + listing (steps in HANDOFF 2026-10-21)
 - Molly: push and tag AppUpdater (0.3.0 is committed locally only), then rebuild TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse and the Switchboard app on Flutter 3.47 against it
 - Molly: send the hub message to TennisSpark and run a TennisSpark job (Details view, gateway URL https://molly-app-updater.mollysoft.workers.dev, app id com.hawkspod.tennisspark_app, bump past build 11), build it, sideload once from Google Drive, then read Settings > App updates > Details
 - Then publish that build plus one more and confirm the phone self-updates without Google Drive
@@ -40,6 +44,10 @@ Updated: 2026-10-21 by Claude Code (material_ui fix, app_updater_flutter 0.3.0)
 - [D-0004] 2026-10-20 Molly: target Android APKs first (Flutter + Kotlin/Android); Windows desktop remote updates can come later if needed
 - [D-0005] 2026-10-20 Molly: include debug logging and a stored last-check log in the diagnosable update check (closes the TennisSpark inbox item fully)
 - [D-0006] 2026-10-20 Molly: Flutter SDK only for now; Kotlin SDK parity is parked in this map
+- [D-0007] 2026-10-21 Molly: build app sharing as per-person grants + a token-gated web store page (default)
+- [D-0008] 2026-10-21 Molly: keep access grants in R2 under _grants/ (default)
+- [D-0009] 2026-10-21 Molly: keep the master token on her own devices for now (default)
 
 ## Ideas
 - [I-0001] 2026-10-20, Molly (later): Windows desktop .zip self-updater using the artifacts map in version.json - docs/DESIGN.md
+- [I-0002] 2026-10-21, Molly (planned): share apps with other people via per-person access tokens, plus a small token-gated web app store page on the Worker - docs/design/sharing-and-store.md

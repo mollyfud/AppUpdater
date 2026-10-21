@@ -2,6 +2,13 @@ name = "molly-app-updater"
 main = "src/index.ts"
 compatibility_date = "2026-01-01"
 
+# Public gateway address (Workers Custom Domain; Cloudflare makes the DNS record and certificate).
+# Keep workers.dev on: installed apps still use that address in their settings.
+workers_dev = true
+routes = [
+  { pattern = "update.aflspace.com", custom_domain = true }
+]
+
 [[r2_buckets]]
 binding = "RELEASES_BUCKET"
 bucket_name = "private-app-releases"
@@ -10,4 +17,6 @@ bucket_name = "private-app-releases"
 # Also add APP_UPDATER_TOKEN and HMAC_SECRET via `wrangler secret put`:
 #   npx wrangler secret put APP_UPDATER_TOKEN
 #   npx wrangler secret put HMAC_SECRET
+# Optional, enables /api/v1/admin/* (grant-access.ps1, set-listing.ps1):
+#   npx wrangler secret put APP_UPDATER_ADMIN_TOKEN
 TOKEN_TTL_SECONDS = "900"

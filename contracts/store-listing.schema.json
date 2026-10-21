@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antigravity.local/contracts/app-updater/1/store-listing.schema.json",
+  "title": "StoreListing",
+  "description": "Contract app-updater/1 (v1.1.0): store listing stored at <appId>/listing.json in R2, set by scripts/set-listing.ps1. publish-release.ps1 never writes it.",
+  "type": "object",
+  "required": ["appId", "shareable", "updated"],
+  "properties": {
+    "appId": { "type": "string", "pattern": "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z0-9_]+)+$" },
+    "shareable": {
+      "type": "boolean",
+      "description": "Only shareable apps are visible to (and updatable by) grant tokens. Missing listing = not shareable."
+    },
+    "title": { "type": "string", "maxLength": 80, "description": "Store title; defaults to the manifest's project." },
+    "summary": { "type": "string", "maxLength": 300, "description": "One line shown under the title." },
+    "updated": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": true
+}

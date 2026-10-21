@@ -2,6 +2,16 @@
 
 All notable changes to **AppUpdater** will be documented in this file.
 
+## [worker 0.2.0, contract app-updater/1 1.1.0] - 2026-10-21
+- **App sharing (D-0007..D-0009, `docs/design/sharing-and-store.md`):** per-person access grants. Each person gets their own `aug_...` token limited to a list of apps, with optional expiry, revocable on its own. The Worker stores only the token's SHA-256 at `_grants/<hash>.json` in the existing R2 bucket. The owner token (`APP_UPDATER_TOKEN`) works as before.
+- Grants only reach apps marked shareable in `<appId>/listing.json`; any other app returns the same 404 as an unknown app.
+- New `GET /api/v1/catalog`, token-gated store page at `GET /store` (+ `/store.js`, strict CSP, invite links carry the token in the URL fragment), `GET /` redirects there.
+- New admin API under `/api/v1/admin/*` (apps, grants, revoke, listing) behind a separate secret `APP_UPDATER_ADMIN_TOKEN` (unset = admin API off).
+- `/api/v1/download` sends `Content-Disposition: attachment` with the APK file name; `/health` reports `worker`.
+- New scripts `scripts/grant-access.ps1`, `scripts/set-listing.ps1` (shared `scripts/updater-admin.ps1`); new schemas `contracts/access-grant.schema.json`, `contracts/store-listing.schema.json`. Manifest schema and both SDKs unchanged.
+- Tests: 33 Worker tests (grants, revoke/expiry, catalog filtering, admin auth, store headers, palette 4.5:1 contrast in light and dark, main module exports only functions).
+- Fixed before release: a non-function named export (`WORKER_VERSION`) from `src/index.ts` made workerd refuse to start; it lives in `src/version.ts`.
+
 ## [app_updater_flutter 0.3.0] - 2026-10-21
 - **Fix (blocking):** the package now imports `package:material_ui/material_ui.dart` instead of `flutter/material.dart` (new dependency `material_ui: ^1.6.0`). On Flutter 3.47 Material lives in `material_ui` with its own `Theme` and `MaterialLocalizations`; the old import made `showDialog` throw "No MaterialLocalizations found" inside material_ui apps (no update dialog ever opened) and made the tile render with the default light theme in dark apps. **Apps on Flutter 3.47 must rebuild against this version.**
 - `CheckForUpdateTile` and `UpdatePromptDialog.checkOnLaunch` now catch `showDialog` failures: the tile shows an error status and the failure is added to `lastCheckReport` (`dialog error: ...`); the launch check stays silent but logs it. New `UpdateService.recordDialogFailure`.

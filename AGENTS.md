@@ -8,6 +8,7 @@ Private in-app update gateway (**Cloudflare Worker + R2**), `app-updater/1` mani
 ## Architecture & Decisions (Molly, 2026-10-20)
 - **Backend Hosting (D-0001):** Cloudflare Worker + private Cloudflare R2 bucket (`private-app-releases`) to avoid adding bandwidth/storage load to Railway.
 - **Authentication (D-0002):** Single shared Bearer token across Molly's private client apps (stored only in Cloudflare Worker secrets, `%LOCALAPPDATA%\Switchboard\updater.toml`, and per-device app settings — never in tracked files).
+- **Sharing with other people (D-0007..D-0009, 2026-10-21, `docs/design/sharing-and-store.md`):** the shared token above stays as the *owner* token on Molly's devices. Other people get their own `aug_...` grant token (hash only stored at `_grants/` in R2), limited to apps whose `<appId>/listing.json` says `shareable`. Grants and listings are managed only through the admin API (`APP_UPDATER_ADMIN_TOKEN`, a separate Worker secret that never goes into an app) via `scripts/grant-access.ps1` and `scripts/set-listing.ps1`. The store page is `GET /store`. Never print or log grant tokens anywhere but the one-time script output.
 - **Update Checks & Notifications (D-0003):**
   1. **On app start:** Foreground check against `GET /api/v1/update/:appId`, showing `UpdatePromptDialog` when `remote.versionCode > local.versionCode`.
   2. **Instant push via `ntfy`:** `scripts/publish-release.ps1` posts a notification to Molly's `ntfy` topic as soon as a new APK is uploaded to R2 (no battery-draining 12h background `WorkManager` polling needed across 8 apps).
@@ -25,6 +26,7 @@ Private in-app update gateway (**Cloudflare Worker + R2**), `app-updater/1` mani
 - **Never write secrets** (Cloudflare R2 keys, Worker tokens, HMAC secrets, signing keystores, `ntfy` topics) into tracked files or handover notes.
 
 ### Project conventions
+- **Worker (`worker/`):** `src/index.ts` may export only the default handler and functions; workerd refuses to start on any other named export (a test guards this). Put constants in other modules. Run `npm test` and `npx wrangler deploy --dry-run` before a deploy.
 - **PowerShell scripts (`scripts/*.ps1`):** Must be ASCII-only unless saved with a UTF-8 BOM so Windows PowerShell 5.1 parses them cleanly.
 - **Flutter SDK (`packages/app_updater_flutter`):**
   - Stream APK files when computing SHA-256 (`file.openRead().transform(sha256)`) rather than `readAsBytes()` to avoid OOM on large APKs.
