@@ -30,7 +30,7 @@ Updated: 2026-10-22 by Claude Code (custom domain update.aflspace.com in wrangle
 
 ## Next
 - Molly: deploy sharing (Worker 0.2.0) and the update.aflspace.com custom domain: set the new APP_UPDATER_ADMIN_TOKEN secret, add gateway_url (https://update.aflspace.com) + admin_token to updater.toml, deploy, check /health on the new domain, then a first real grant + listing (steps in HANDOFF 2026-10-21)
-- Molly: push and tag AppUpdater (0.3.0 is committed locally only), then rebuild TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse and the Switchboard app on Flutter 3.47 against it
+- Molly: tag AppUpdater (main is pushed; no release tag yet), then rebuild TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse and the Switchboard app on Flutter 3.47 against it
 - Molly: send the hub message to TennisSpark and run a TennisSpark job (Details view, gateway URL https://molly-app-updater.mollysoft.workers.dev, app id com.hawkspod.tennisspark_app, bump past build 11), build it, sideload once from Google Drive, then read Settings > App updates > Details
 - Then publish that build plus one more and confirm the phone self-updates without Google Drive
 - Then Kotlin SDK parity for app-updater-android

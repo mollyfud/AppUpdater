@@ -2,6 +2,14 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-22 - Claude Code (Pushed main to GitHub)
+- **Did:** Molly said "push it": pushed `main` (`0ff0b16..c3b52ba`, the sharing work + custom domain) to origin. PLAN Next no longer says main is unpushed; this note committed and pushed too.
+- **Versions:** no product change.
+- **Decisions:** push only; no tag, no deploy.
+- **Verified:** `git status` shows main even with origin/main after the push.
+- **Not verified / next:** Worker 0.2.0 and update.aflspace.com are still NOT deployed (steps in the entries below). No release tag yet.
+- **Gotchas:** none.
+
 ### 2026-10-22 - Claude Code (Custom domain update.aflspace.com in wrangler.toml; local commit)
 - **Did:** `worker/wrangler.toml`: `routes = [{ pattern = "update.aflspace.com", custom_domain = true }]` and explicit `workers_dev = true`. Committed all of the 2026-10-21 sharing work plus this, locally (no push).
 - **Versions:** no product change (deploy config only).
