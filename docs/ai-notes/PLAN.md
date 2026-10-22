@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-22 by Claude Code (custom domain update.aflspace.com in wrangler.toml)
+Updated: 2026-10-23 by Claude Code (Switchboard job 01M5GEGM008T2Z5G8W65RX5GET, Flutter SDK 0.4.0 release notes)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -24,11 +24,13 @@ Updated: 2026-10-22 by Claude Code (custom domain update.aflspace.com in wrangle
 - [done] Rollout remaining Flutter apps (Phase 4 - Rollout across client apps) - TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, MollysWordPressStatsFlutterApp (Site Pulse), SystemPulse all integrated, tested, built, version.json emitted, and published to R2 bucket.
 - [done] Diagnosable update check, Flutter SDK 0.2.0 (Phase 5 - Field diagnostics and hardening) - 404 and incomplete manifest are errors, result summary with local/server build + HTTP status, token-free lastCheckLog/lastCheckReport, tile Details dialog; 16 tests + analyze passing
 - [done] material_ui compatibility, Flutter SDK 0.3.0 (Phase 5 - Field diagnostics and hardening) - imports material_ui so the dialog opens and the tile follows the theme on Flutter 3.47; showDialog errors surface in tile and report; committed locally, not pushed or tagged
+- [done] Release notes in tile Details, Flutter SDK 0.4.0 (Phase 5 - Field diagnostics and hardening) - link reads "What's new" and opens notes (also when up to date), log behind "Show technical details"; upToDate carries manifest; not pushed or tagged
 - [done] Access grants, admin API and store page, Worker 0.2.0 / contract 1.1.0 (Phase 6 - Sharing apps with other people) - 33 worker tests; scripts and page checked end-to-end on local wrangler dev; not deployed
 - [waiting] Deploy sharing and first real share (Phase 6 - Sharing apps with other people) - waiting on Molly: admin secret, updater.toml keys, wrangler deploy, real phone install
-- [not-started] Kotlin SDK parity: 404 and incomplete manifest as errors, diagnostics + log (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt:94 and :114-125, parked by D-0006
+- [not-started] Kotlin SDK parity: 404 and incomplete manifest as errors, diagnostics + log (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt:94 and :114-125, parked by D-0006; also port the "What's new" release-notes view to CheckForUpdateRow (D-0010)
 
 ## Next
+- Rebuild WordpressLiveBlogger and the other Flutter apps against app_updater_flutter 0.4.0 (no tag yet), then check Settings > App updates > Check for Update > What's new on a phone
 - Molly: deploy sharing (Worker 0.2.0) and the update.aflspace.com custom domain: set the new APP_UPDATER_ADMIN_TOKEN secret, add gateway_url (https://update.aflspace.com) + admin_token to updater.toml, deploy, check /health on the new domain, then a first real grant + listing (steps in HANDOFF 2026-10-21)
 - Molly: tag AppUpdater (main is pushed; no release tag yet), then rebuild TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse and the Switchboard app on Flutter 3.47 against it
 - Molly: send the hub message to TennisSpark and run a TennisSpark job (Details view, gateway URL https://molly-app-updater.mollysoft.workers.dev, app id com.hawkspod.tennisspark_app, bump past build 11), build it, sideload once from Google Drive, then read Settings > App updates > Details
@@ -47,6 +49,7 @@ Updated: 2026-10-22 by Claude Code (custom domain update.aflspace.com in wrangle
 - [D-0007] 2026-10-21 Molly: build app sharing as per-person grants + a token-gated web store page (default)
 - [D-0008] 2026-10-21 Molly: keep access grants in R2 under _grants/ (default)
 - [D-0009] 2026-10-21 Molly: keep the master token on her own devices for now (default)
+- [D-0010] 2026-10-23 Molly: the tile link says "What's new" when the last result has release notes and "Details" for errors, unconfigured or no check yet; when up to date the dialog still shows the current release's notes, titled "What's new in vX"
 
 ## Ideas
 - [I-0001] 2026-10-20, Molly (later): Windows desktop .zip self-updater using the artifacts map in version.json - docs/DESIGN.md

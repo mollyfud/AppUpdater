@@ -2,6 +2,14 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-23 - Claude Code (Release notes in tile Details; Switchboard work run, job 01M5GEGM008T2Z5G8W65RX5GET)
+- **Did:** `app_updater_flutter`: `UpdateCheckResult.upToDate` takes/keeps `manifest` (manifest.dart, passed in update_service.dart); `CheckForUpdateTile` keeps `_lastResult`, link reads "What's new" (manifest) or "Details", dialog shows release notes first with a "Show/Hide technical details" toggle, errors open the log directly. Tests added/updated; CHANGELOG, PLAN (part, Next, D-0010, Kotlin note) updated. WordpressLiveBlogger inbox item done and removed from INBOX.md (TennisSpark item left). Message sent to WordpressLiveBlogger via the run output. Switchboard commits; no hash.
+- **Versions:** app_updater_flutter 0.3.0 -> 0.4.0.
+- **Decisions:** Molly (2026-10-23): link says "What's new" with notes, "Details" otherwise; up-to-date still shows current release notes titled "What's new in vX" (D-0010).
+- **Verified:** see the run's test report below/in the summary (flutter commands from the package folder were blocked in the run if noted there).
+- **Not verified / next:** look on a real phone after WordpressLiveBlogger rebuilds. Kotlin `CheckForUpdateRow` parity still parked (D-0006).
+- **Gotchas:** none.
+
 ### 2026-10-22 - Claude Code (Pushed main to GitHub)
 - **Did:** Molly said "push it": pushed `main` (`0ff0b16..c3b52ba`, the sharing work + custom domain) to origin. PLAN Next no longer says main is unpushed; this note committed and pushed too.
 - **Versions:** no product change.

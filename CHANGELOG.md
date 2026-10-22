@@ -2,6 +2,12 @@
 
 All notable changes to **AppUpdater** will be documented in this file.
 
+## [app_updater_flutter 0.4.0] - 2026-10-23
+- `CheckForUpdateTile`: the link under the status reads **"What's new"** when the last check has a release (also when already up to date) and opens that release's notes ("What's new in vX", with the build number under it). The technical check log is behind a **"Show technical details"** toggle. Errors, unconfigured and "no check yet" keep a **"Details"** link that opens the log directly.
+- `UpdateCheckResult.upToDate` now carries `manifest` (the server's current release), so notes are available when no update is pending. `hasUpdate` is unchanged. Existing callers keep compiling.
+- Tests: tile "What's new" flow, 404 "Details" flow, empty-notes message (light and dark, 360px), service `lastResult.manifest`.
+- Apps pick this up when they rebuild against the package (path dependency; no tag yet).
+
 ## [worker 0.2.0, contract app-updater/1 1.1.0] - 2026-10-21
 - **App sharing (D-0007..D-0009, `docs/design/sharing-and-store.md`):** per-person access grants. Each person gets their own `aug_...` token limited to a list of apps, with optional expiry, revocable on its own. The Worker stores only the token's SHA-256 at `_grants/<hash>.json` in the existing R2 bucket. The owner token (`APP_UPDATER_TOKEN`) works as before.
 - Grants only reach apps marked shareable in `<appId>/listing.json`; any other app returns the same 404 as an unknown app.

@@ -11,7 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'manifest.dart';
 
 /// SDK version reported in the update-check log. Bump together with `pubspec.yaml`.
-const appUpdaterFlutterVersion = '0.3.0';
+const appUpdaterFlutterVersion = '0.4.0';
 
 typedef ApkInstallerLauncher = Future<void> Function(String apkFilePath);
 
@@ -305,8 +305,9 @@ class UpdateService {
           httpStatus: status,
           remoteVersionCode: manifest.versionCode,
           remoteVersionName: manifest.versionName,
+          manifest: manifest,
         ),
-        'server build ${manifest.versionCode} <= local build $currentCode',
+        'server build ${manifest.versionCode} <=local build $currentCode',
       );
     } catch (e) {
       _log('parse error: $e');

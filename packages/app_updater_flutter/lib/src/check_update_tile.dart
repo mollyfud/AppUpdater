@@ -11,7 +11,9 @@ class CheckForUpdateTile extends StatefulWidget {
   final String? appIdOverride;
   final String title;
 
-  /// Shows a "Details" button after a check that opens [UpdateService.lastCheckReport].
+  /// Shows a link after a check. When the last result has a manifest ("What's new") it opens the
+  /// release notes, with [UpdateService.lastCheckReport] behind "Show technical details"; otherwise
+  /// ("Details") it opens the report directly.
   final bool showDetails;
 
   const CheckForUpdateTile({
@@ -30,6 +32,7 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
   bool _isChecking = false;
   String? _statusMessage;
   bool _isError = false;
+  UpdateCheckResult? _lastResult;
 
   Future<void> _runCheck() async {
     setState(() {
@@ -43,6 +46,7 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
     );
 
     if (!mounted) return;
+    _lastResult = result;
 
     if (result.hasUpdate && result.manifest != null) {
       setState(() {
@@ -82,57 +86,114 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
 
   Future<void> _showDetails() async {
     final report = widget.updateService.lastCheckReport;
+    final manifest = _lastResult?.manifest;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         final palette =
             UpdateDialogColors.forBrightness(Theme.of(dialogContext).brightness);
-        return AlertDialog(
-          backgroundColor: palette.dialogBackground,
-          surfaceTintColor: Colors.transparent,
-          title: Text(
-            'Last update check',
-            style: TextStyle(
+        var showLog = manifest == null;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final titleStyle = TextStyle(
               color: palette.titleColor,
               fontWeight: FontWeight.w700,
               fontSize: 18,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SelectableText(
-                  report.isNotEmpty ? report : 'No update check has run yet.',
-                  key: const Key('check-for-update-report'),
-                  style: TextStyle(
-                    color: palette.bodyColor,
-                    fontSize: 12,
-                    height: 1.4,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Wrap instead of Row so the action fits on < 400px widths
-                Wrap(
-                  alignment: WrapAlignment.end,
-                  spacing: 8,
-                  runSpacing: 8,
+            );
+            return AlertDialog(
+              backgroundColor: palette.dialogBackground,
+              surfaceTintColor: Colors.transparent,
+              title: manifest == null
+                  ? Text('Last update check', style: titleStyle)
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text("What's new in v${manifest.versionName}",
+                            style: titleStyle),
+                        Text(
+                          '(build ${manifest.versionCode})',
+                          style: TextStyle(
+                            color: palette.bodyColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    TextButton(
-                      key: const Key('check-for-update-details-close'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: palette.secondaryButtonText,
+                    if (manifest != null)
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: palette.notesBoxBackground,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: palette.notesBoxBorder),
+                        ),
+                        child: SelectableText(
+                          manifest.releaseNotes.trim().isNotEmpty
+                              ? manifest.releaseNotes
+                              : 'No release notes for this version.',
+                          key: const Key('check-for-update-release-notes'),
+                          style: TextStyle(
+                            color: palette.notesTextColor,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
                       ),
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: const Text('Close'),
+                    if (showLog) ...[
+                      if (manifest != null) const SizedBox(height: 12),
+                      SelectableText(
+                        report.isNotEmpty
+                            ? report
+                            : 'No update check has run yet.',
+                        key: const Key('check-for-update-report'),
+                        style: TextStyle(
+                          color: palette.bodyColor,
+                          fontSize: 12,
+                          height: 1.4,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    // Wrap instead of Row so the actions fit on < 400px widths
+                    Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (manifest != null)
+                          TextButton(
+                            key: const Key('check-for-update-toggle-log'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: palette.secondaryButtonText,
+                            ),
+                            onPressed: () =>
+                                setDialogState(() => showLog = !showLog),
+                            child: Text(showLog
+                                ? 'Hide technical details'
+                                : 'Show technical details'),
+                          ),
+                        TextButton(
+                          key: const Key('check-for-update-details-close'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: palette.secondaryButtonText,
+                          ),
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: const Text('Close'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -200,7 +261,8 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
                   padding: EdgeInsets.zero,
                 ),
                 onPressed: _showDetails,
-                child: const Text('Details'),
+                child: Text(
+                    _lastResult?.manifest != null ? "What's new" : 'Details'),
               ),
           ],
         ],

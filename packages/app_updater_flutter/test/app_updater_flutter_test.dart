@@ -275,6 +275,9 @@ void main() {
       expect(report, isNot(contains('expires=')));
       expect(report, contains('downloadUrl present (host updater.example.com)'));
       expect(service.lastResult?.status, UpdateCheckStatus.upToDate);
+      expect(service.lastResult?.hasUpdate, isFalse);
+      expect(service.lastResult?.manifest, isNotNull);
+      expect(service.lastResult?.manifest?.releaseNotes, contains('Added Argon usage meter'));
       expect(service.lastCheckLog.length, report.split('\n').length);
 
       code = 14;
@@ -474,10 +477,19 @@ void main() {
         );
         expect(tester.takeException(), isNull);
 
-        // Details opens the token-free report of the last check
+        // "What's new" opens the release notes first, the log only on request
+        expect(find.text("What's new"), findsOneWidget);
         await tester.tap(find.byKey(const Key('check-for-update-details')));
         await tester.pumpAndSettle();
+        expect(find.text("What's new in v1.3.0"), findsOneWidget);
+        final notesFinder = find.byKey(const Key('check-for-update-release-notes'));
+        expect(tester.widget<SelectableText>(notesFinder).data!, contains('Added Argon usage meter'));
         final reportFinder = find.byKey(const Key('check-for-update-report'));
+        expect(reportFinder, findsNothing);
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.byKey(const Key('check-for-update-toggle-log')));
+        await tester.pumpAndSettle();
         expect(reportFinder, findsOneWidget);
         final reportText = tester.widget<SelectableText>(reportFinder).data!;
         expect(reportText, contains('outcome: upToDate'));
@@ -534,6 +546,51 @@ void main() {
         );
         expect(find.textContaining('Up to date'), findsNothing);
         expect(find.byKey(const Key('check-for-update-details')), findsOneWidget);
+        expect(find.text('Details'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        // No manifest: the log opens straight away, with no notes box or toggle
+        await tester.tap(find.byKey(const Key('check-for-update-details')));
+        await tester.pumpAndSettle();
+        expect(find.text('Last update check'), findsOneWidget);
+        expect(find.byKey(const Key('check-for-update-report')), findsOneWidget);
+        expect(find.byKey(const Key('check-for-update-toggle-log')), findsNothing);
+        expect(find.byKey(const Key('check-for-update-release-notes')), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('CheckForUpdateTile says so when the release has no notes (${brightness.name})', (tester) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final service = _serviceReturning(
+          (_) => _jsonResponse(
+            {..._sampleManifestJson(versionCode: 10), 'releaseNotes': ''},
+            200,
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(brightness: brightness),
+            home: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(12),
+                child: CheckForUpdateTile(updateService: service),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.byKey(const Key('check-for-update-button')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('check-for-update-details')));
+        await tester.pumpAndSettle();
+        expect(find.text('No release notes for this version.'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     }

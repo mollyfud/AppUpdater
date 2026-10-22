@@ -105,6 +105,9 @@ enum UpdateCheckStatus {
 /// Outcome of an update check. The optional diagnostic fields ([appId], [endpoint], [httpStatus],
 /// [remoteVersionCode], [remoteVersionName]) explain *why* the check ended the way it did.
 /// None of them ever holds the auth token or the signed download URL.
+///
+/// On [UpdateCheckStatus.updateAvailable] [manifest] is the newer release. On
+/// [UpdateCheckStatus.upToDate] it is the server's current release (kept for its release notes).
 class UpdateCheckResult {
   final UpdateCheckStatus status;
   final int currentVersionCode;
@@ -142,11 +145,13 @@ class UpdateCheckResult {
     int? httpStatus,
     int? remoteVersionCode,
     String? remoteVersionName,
+    AppReleaseManifest? manifest,
   }) =>
       UpdateCheckResult._(
         status: UpdateCheckStatus.upToDate,
         currentVersionCode: currentVersionCode,
         currentVersionName: currentVersionName,
+        manifest: manifest,
         appId: appId,
         endpoint: endpoint,
         httpStatus: httpStatus,
