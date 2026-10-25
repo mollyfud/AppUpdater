@@ -18,10 +18,14 @@ param(
     [string]$ConfigPath = "$env:LOCALAPPDATA\Switchboard\updater.toml",
     [switch]$ManifestOnly = $false,
     [switch]$DryRun = $false,
-    [switch]$SkipNtfy = $false
+    [switch]$SkipNtfy = $false,
+    [string]$Aapt2Path = "",
+    [switch]$SkipApkCheck = $false
 )
 
 $ErrorActionPreference = "Stop"
+$PublisherVersion = "0.2.0"
+Write-Host "publish-release $PublisherVersion"
 
 $resolvedProject = (Resolve-Path -Path $ProjectDir).Path
 if (-not $ProjectName) {
@@ -104,7 +108,68 @@ if (-not $AppId) {
     $AppId = "com.molly.$safeSlug"
 }
 
+function Find-Aapt2 {
+    param([string]$Explicit, [hashtable]$Config, [ref]$Searched)
+    $list = @()
+    if ($Explicit) {
+        $list += $Explicit
+        $Searched.Value += "-Aapt2Path"
+    }
+    if ($Config.ContainsKey("aapt2_path") -and $Config["aapt2_path"]) {
+        $list += $Config["aapt2_path"]
+        $Searched.Value += "aapt2_path in updater.toml"
+    }
+    foreach ($c in $list) {
+        if (Test-Path -Path $c -PathType Leaf) { return (Resolve-Path -Path $c).Path }
+    }
+    $onPath = Get-Command "aapt2" -ErrorAction SilentlyContinue
+    $Searched.Value += "PATH"
+    if ($onPath) { return $onPath.Source }
+    $sdkRoots = @($env:ANDROID_HOME, $env:ANDROID_SDK_ROOT)
+    if ($env:LOCALAPPDATA) { $sdkRoots += (Join-Path $env:LOCALAPPDATA "Android\Sdk") }
+    foreach ($root in $sdkRoots) {
+        if (-not $root) { continue }
+        $bt = Join-Path $root "build-tools"
+        $Searched.Value += $bt
+        if (-not (Test-Path -Path $bt)) { continue }
+        $versions = @()
+        foreach ($d in (Get-ChildItem -Path $bt -Directory -ErrorAction SilentlyContinue)) {
+            $parsed = $null
+            if ([version]::TryParse($d.Name, [ref]$parsed)) {
+                $exe = Join-Path $d.FullName "aapt2.exe"
+                if (Test-Path -Path $exe) { $versions += [pscustomobject]@{ Version = $parsed; Path = $exe } }
+            }
+        }
+        if ($versions.Count -gt 0) {
+            return ($versions | Sort-Object Version -Descending | Select-Object -First 1).Path
+        }
+    }
+    return $null
+}
+
+function Get-ApkBadging {
+    param([string]$Aapt2, [string]$Apk)
+    $out = & $Aapt2 dump badging $Apk 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "aapt2 dump badging failed (exit $LASTEXITCODE) for ${Apk}: $($out -join ' ')"
+    }
+    foreach ($l in $out) {
+        $s = "$l"
+        if ($s -match '^package:') {
+            if ($s -match "name='([^']*)'" ) { $n = $Matches[1] } else { $n = $null }
+            if ($s -match "versionCode='(\d+)'") { $c = $Matches[1] } else { $c = $null }
+            if ($s -match "versionName='([^']*)'") { $v = $Matches[1] } else { $v = $null }
+            if ($null -eq $n -or $null -eq $c -or $null -eq $v) {
+                throw "Could not parse name/versionCode/versionName from aapt2 output: $s"
+            }
+            return [pscustomobject]@{ Package = $n; VersionCode = [int]$c; VersionName = $v }
+        }
+    }
+    throw "aapt2 dump badging printed no package line for $Apk"
+}
+
 # 3. Locate APK in dist/ if not passed explicitly
+$apkFromFallback = $false
 $distDir = Join-Path $resolvedProject "dist"
 if (-not $ApkPath) {
     $expectedDistApk = Join-Path $distDir "$ProjectName-v$VersionName.apk"
@@ -112,7 +177,11 @@ if (-not $ApkPath) {
         $ApkPath = $expectedDistApk
     } elseif (Test-Path -Path $distDir) {
         $latestApk = Get-ChildItem -Path $distDir -Filter "*.apk" -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        if ($latestApk) { $ApkPath = $latestApk.FullName }
+        if ($latestApk) {
+            $ApkPath = $latestApk.FullName
+            $apkFromFallback = $true
+            Write-Host "[!] Expected $expectedDistApk was not found; using the newest APK in dist/ instead: $($latestApk.FullName)" -ForegroundColor Yellow
+        }
     }
 }
 
@@ -120,6 +189,32 @@ if (-not $ApkPath -or -not (Test-Path -Path $ApkPath)) {
     throw "APK file not found. Build the APK first (build-apk.ps1) or pass -ApkPath."
 }
 $ApkPath = (Resolve-Path -Path $ApkPath).Path
+
+# 3b. Check the APK's real package/versionCode/versionName against the manifest (aapt2 dump badging)
+if ($SkipApkCheck) {
+    Write-Host "[!] -SkipApkCheck: the APK was NOT verified against the manifest." -ForegroundColor Yellow
+} else {
+    $aapt2Searched = @()
+    $aapt2 = Find-Aapt2 -Explicit $Aapt2Path -Config $cfg -Searched ([ref]$aapt2Searched)
+    if (-not $aapt2) {
+        throw ("aapt2 (Android build-tools) was not found, so the APK cannot be checked against the manifest. Searched: " +
+            ($aapt2Searched -join "; ") + ". Fix: install Android build-tools, set ANDROID_HOME, pass -Aapt2Path, " +
+            "set aapt2_path in updater.toml, or pass -SkipApkCheck to publish without the check.")
+    }
+    $badging = Get-ApkBadging -Aapt2 $aapt2 -Apk $ApkPath
+    $problems = @()
+    if ($badging.Package -ne $AppId) { $problems += "appId: manifest $AppId vs APK $($badging.Package)" }
+    if ($badging.VersionName -ne $VersionName) { $problems += "versionName: manifest $VersionName vs APK $($badging.VersionName)" }
+    if ([int]$badging.VersionCode -ne $VersionCode) { $problems += "versionCode: manifest $VersionCode vs APK $($badging.VersionCode)" }
+    if ($problems.Count -gt 0) {
+        $msg = "APK does not match manifest ($ApkPath): " + ($problems -join "; ") + "."
+        if ($apkFromFallback) {
+            $msg += " dist/$ProjectName-v$VersionName.apk was not found (rebuild with build-apk.ps1 or pass -ApkPath)."
+        }
+        throw $msg
+    }
+    Write-Host "[OK] APK matches manifest: $($badging.Package) v$($badging.VersionName)+$($badging.VersionCode)" -ForegroundColor Green
+}
 
 # 4. Extract latest CHANGELOG.md section if ReleaseNotes not provided
 if (-not $ReleaseNotes) {

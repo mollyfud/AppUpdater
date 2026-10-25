@@ -2,6 +2,14 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-25 - Claude Code (Publisher checks APK version with aapt2; Switchboard work run for job 01M5S3YNR5S4M48YKY8DS9WBKQ)
+- **Did:** `scripts/publish-release.ps1` 0.1.0 -> 0.2.0: `Find-Aapt2`, `Get-ApkBadging`, step 3b compares package/versionCode/versionName from `aapt2 dump badging` with the manifest values and throws before version.json is written; fallback-APK warning; new `-Aapt2Path`, `-SkipApkCheck`, `aapt2_path` in updater.toml. CHANGELOG, README, contracts/README, AGENTS.md bullet, PLAN (part, Next, D-0011) updated. Messages to SystemPulse and Switchboard in the run output. Switchboard commits; no hash.
+- **Versions:** publish-release 0.1.0 -> 0.2.0 (no contract change).
+- **Decisions:** Molly (2026-10-25): refuse when aapt2 is missing unless `-SkipApkCheck` (D-0011).
+- **Verified:** ASCII-only (Grep for non-ASCII bytes: none). Nothing else: PowerShell and Bash commands were denied in the run, so the script has NOT been executed or even parse-checked.
+- **Not verified / next:** run the plan's cases by hand in `powershell` and `pwsh` with a temp project (pubspec.yaml, android\app\build.gradle.kts, dist\ with a real APK): matching values with `-DryRun -SkipNtfy` prints `[OK] APK matches`; pubspec versionCode +1 prints the fallback warning then throws and leaves dist\version.json untouched; different versionName and applicationId throw; `-Aapt2Path C:\nope\aapt2.exe` with ANDROID_HOME/ANDROID_SDK_ROOT/LOCALAPPDATA pointed at empty folders refuses, and adding `-SkipApkCheck` warns and continues. Then Molly publishes SystemPulse 1.4.7+20 via `publish_apk`; the live 1.4.6 manifest stays wrong until then.
+- **Gotchas:** the check runs before `-ManifestOnly`/`-DryRun` returns, so those refuse too. The publishing PC needs Android build-tools.
+
 ### 2026-10-25 - Antigravity on DADSLAPTOP (Full project review & fixes: Flutter dialog layout & in-flight hash, Kotlin 404 & HTTPS parity, Worker Range & parallel R2)
 - **Did:**
   - `packages/app_updater_flutter`:

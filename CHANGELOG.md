@@ -2,6 +2,13 @@
 
 All notable changes to **AppUpdater** will be documented in this file.
 
+## [publish-release 0.2.0] - 2026-10-25
+- `scripts/publish-release.ps1` now reads the APK's real package, versionCode and versionName with `aapt2 dump badging` and refuses (before writing `dist/version.json` or uploading, so `-ManifestOnly` and `-DryRun` refuse too) when they differ from the manifest values.
+- It also refuses when aapt2 can't be found. New options: `-Aapt2Path`, `aapt2_path` in `updater.toml`, and `-SkipApkCheck` (publish unverified, with a warning). Lookup order: `-Aapt2Path`, `aapt2_path`, PATH, then `build-tools` under `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `%LOCALAPPDATA%\Android\Sdk`.
+- Warns when the expected `dist/<Project>-v<version>.apk` is missing and the newest APK in `dist/` is used instead.
+- Why: SystemPulse went out as 1.4.6/19 in the manifest while `apkKey`/`sha256` pointed at the 1.4.5 APK, so phones looped on "update available".
+- Not yet run: PowerShell was blocked in the work run; see the HANDOFF entry for the test commands.
+
 ## [2026-10-25]
 - **`app_updater_flutter`:**
   - Fixed mobile overflow bug in `CheckForUpdateTile._showDetails()`: moved action buttons from scrollable `content` to `AlertDialog.actions` so "Close" and "Hide/Show technical details" remain visible and tappable across all mobile viewports; resolved 2 failing Flutter widget tests (all 21 tests pass).

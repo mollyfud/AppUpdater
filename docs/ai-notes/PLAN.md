@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-25 by Antigravity (Flutter SDK action layout & in-flight hash fix; Kotlin SDK 404 parity & HTTPS; Worker Range, CORS & parallel R2)
+Updated: 2026-10-25 by Claude Code (job 01M5S3YNR5S4M48YKY8DS9WBKQ)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -16,7 +16,7 @@ Updated: 2026-10-25 by Antigravity (Flutter SDK action layout & in-flight hash f
 - [done] Project scaffolding and design (Phase 1 - Contract and Cloudflare gateway) - repo initialized, docs/DESIGN.md and contracts/version-manifest.schema.json written
 - [done] Contract app-updater/1 (Phase 1 - Contract and Cloudflare gateway) - 1.0.0, contracts/version-manifest.schema.json and contracts/README.md
 - [done] Cloudflare Worker and R2 gateway (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, worker deployed at https://molly-app-updater.mollysoft.workers.dev, private-app-releases R2 bucket live
-- [done] Publisher script publish-release.ps1 (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, SHA-256, version.json generation, R2 upload via Wrangler, ntfy notification
+- [done] Publisher script publish-release.ps1 (Phase 1 - Contract and Cloudflare gateway) - 0.2.0, SHA-256, version.json generation, R2 upload via Wrangler, ntfy notification, aapt2 APK check
 - [done] Flutter SDK app_updater_flutter (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, UpdateService streaming SHA-256, UpdatePromptDialog, CheckForUpdateTile, 8 tests + flutter analyze passing
 - [done] Android Kotlin SDK app-updater-android (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, pure Kotlin JSON parser (no org.json), UpdateClient streaming SHA-256, ApkInstaller, Compose UpdatePromptDialog + CheckForUpdateRow, JUnit tests
 - [done] Switchboard build template and publish_apk action (Phase 3 - Switchboard build and publish integration) - flutter-build-apk.ps1, spoke 0.37.0 publish_apk action with tests passing
@@ -27,9 +27,11 @@ Updated: 2026-10-25 by Antigravity (Flutter SDK action layout & in-flight hash f
 - [done] Release notes in tile Details, Flutter SDK 0.4.0 (Phase 5 - Field diagnostics and hardening) - link reads "What's new" and opens notes (also when up to date), log behind "Show technical details"; upToDate carries manifest; not pushed or tagged
 - [done] Access grants, admin API and store page, Worker 0.2.0 / contract 1.1.0 (Phase 6 - Sharing apps with other people) - 33 worker tests; scripts and page checked end-to-end on local wrangler dev; not deployed
 - [done] Kotlin SDK parity: 404 and incomplete manifest as errors, HTTPS scheme enforcement, cached APK reuse (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt, DefaultHttpUrlConnectionTransport, and JUnit tests passing
+- [done] Publisher verifies APK version (Phase 5 - Field diagnostics and hardening) - publish-release 0.2.0 refuses an APK whose aapt2 badging differs from the manifest or when aapt2 is missing; written but not yet run (PowerShell blocked in the work run)
 - [waiting] Deploy sharing and first real share (Phase 6 - Sharing apps with other people) - waiting on Molly: admin secret, updater.toml keys, wrangler deploy, real phone install
 
 ## Next
+- Molly: run the publish-release 0.2.0 checks from HANDOFF (not run yet), then publish SystemPulse 1.4.7+20 via publish_apk to replace the wrong live 1.4.6 manifest
 - Rebuild WordpressLiveBlogger and the other Flutter apps against app_updater_flutter 0.4.0 (no tag yet), then check Settings > App updates > Check for Update > What's new on a phone
 - Molly: deploy sharing (Worker 0.2.0) and the update.aflspace.com custom domain: set the new APP_UPDATER_ADMIN_TOKEN secret, add gateway_url (https://update.aflspace.com) + admin_token to updater.toml, deploy, check /health on the new domain, then a first real grant + listing (steps in HANDOFF 2026-10-21)
 - Molly: tag AppUpdater (main is pushed; no release tag yet), then rebuild TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse and the Switchboard app on Flutter 3.47 against it
@@ -50,6 +52,8 @@ Updated: 2026-10-25 by Antigravity (Flutter SDK action layout & in-flight hash f
 - [D-0008] 2026-10-21 Molly: keep access grants in R2 under _grants/ (default)
 - [D-0009] 2026-10-21 Molly: keep the master token on her own devices for now (default)
 - [D-0010] 2026-10-23 Molly: the tile link says "What's new" when the last result has release notes and "Details" for errors, unconfigured or no check yet; when up to date the dialog still shows the current release's notes, titled "What's new in vX"
+
+- [D-0011] 2026-10-25 Molly: publish-release.ps1 refuses when aapt2 can't be found, unless -SkipApkCheck is passed explicitly
 
 ## Ideas
 - [I-0001] 2026-10-20, Molly (later): Windows desktop .zip self-updater using the artifacts map in version.json - docs/DESIGN.md

@@ -7,6 +7,6 @@ Private in-app update gateway (**Cloudflare Worker + R2**), `app-updater/1` mani
 - [`docs/DESIGN.md`](docs/DESIGN.md) — Architecture, SDK specifications, and Switchboard integration.
 - [`docs/ai-notes/PLAN.md`](docs/ai-notes/PLAN.md) — Project map (milestones, parts, decisions).
 - `worker/` — Cloudflare Worker gateway (`GET /api/v1/version/:appId`, `GET /api/v1/update/:appId`, `GET /api/v1/download`).
-- `scripts/` — `publish-release.ps1` (uploads APK + `version.json` to R2 and sends an `ntfy` notification).
+- `scripts/` — `publish-release.ps1` (uploads APK + `version.json` to R2 and sends an `ntfy` notification). It checks the APK's package/versionCode/versionName against the manifest first and needs Android build-tools (`aapt2`).
 - `packages/app_updater_flutter/` — Shared Flutter updater package (on-launch check, update modal dialog, and "Check for Update" settings tile).
 - `packages/app-updater-android/` — Shared native Android/Kotlin updater module (`kotlinx.serialization`, `OkHttp` streaming SHA-256 verification, `FileProvider` installer, Jetpack Compose UI).

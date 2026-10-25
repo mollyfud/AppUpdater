@@ -28,6 +28,7 @@ Private in-app update gateway (**Cloudflare Worker + R2**), `app-updater/1` mani
 ### Project conventions
 - **Worker (`worker/`):** `src/index.ts` may export only the default handler and functions; workerd refuses to start on any other named export (a test guards this). Put constants in other modules. Run `npm test` and `npx wrangler deploy --dry-run` before a deploy.
 - **PowerShell scripts (`scripts/*.ps1`):** Must be ASCII-only unless saved with a UTF-8 BOM so Windows PowerShell 5.1 parses them cleanly.
+  - `publish-release.ps1` must check the APK's package, versionCode and versionName (`aapt2 dump badging`) against the manifest before writing version.json or uploading. It refuses when aapt2 is missing unless `-SkipApkCheck` is passed explicitly.
 - **Flutter SDK (`packages/app_updater_flutter`):**
   - Stream APK files when computing SHA-256 (`file.openRead().transform(sha256)`) rather than `readAsBytes()` to avoid OOM on large APKs.
   - Choose UI colours per theme brightness, pair every background with an explicit text colour, and check 4.5:1 contrast with a test in both light and dark themes.

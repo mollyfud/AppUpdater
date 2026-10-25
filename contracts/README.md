@@ -21,7 +21,7 @@ private-app-releases/
 
 ## 2. Manifest Schema (`contracts/version-manifest.schema.json`)
 
-Every `build-apk.ps1` release build generates `dist/version.json` matching `version-manifest.schema.json`. When `publish-release.ps1` uploads the APK to R2, it writes `<appId>/version.json` to the bucket.
+Every `build-apk.ps1` release build generates `dist/version.json` matching `version-manifest.schema.json`. When `publish-release.ps1` uploads the APK to R2, it writes `<appId>/version.json` to the bucket. The publisher first checks the APK's package, versionCode and versionName against the manifest (`aapt2 dump badging`, so it needs Android build-tools) and refuses on a mismatch.
 
 ## 3. Cloudflare Worker Endpoints
 
