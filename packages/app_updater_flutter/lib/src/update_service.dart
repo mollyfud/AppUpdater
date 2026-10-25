@@ -11,7 +11,33 @@ import 'package:path_provider/path_provider.dart';
 import 'manifest.dart';
 
 /// SDK version reported in the update-check log. Bump together with `pubspec.yaml`.
-const appUpdaterFlutterVersion = '0.4.0';
+const appUpdaterFlutterVersion = '0.5.0';
+
+/// Thrown when a URL the SDK is asked to fetch is not `https://`.
+/// The message names only the scheme, never the URL (download URLs carry a signature).
+class InsecureUrlException implements Exception {
+  final String message;
+  const InsecureUrlException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+/// Parses [url] and returns it only if it is `https://` with a host. No exceptions, not even
+/// localhost. Route every URL the SDK fetches through this.
+Uri requireHttpsUri(String url) {
+  final uri = Uri.tryParse(url.trim());
+  if (uri == null) {
+    throw const InsecureUrlException(
+        'Refusing insecure update URL: it could not be parsed (https required)');
+  }
+  if (uri.scheme.toLowerCase() != 'https' || uri.host.isEmpty) {
+    final scheme = uri.scheme.isEmpty ? '(none)' : uri.scheme;
+    throw InsecureUrlException(
+        "Refusing insecure update URL: scheme '$scheme' is not https");
+  }
+  return uri;
+}
 
 typedef ApkInstallerLauncher = Future<void> Function(String apkFilePath);
 
@@ -155,10 +181,29 @@ class UpdateService {
     final safeEndpoint = _sanitizeUrl(endpoint);
     _log('endpoint: GET $safeEndpoint');
 
+    final Uri endpointUri;
+    try {
+      endpointUri = requireHttpsUri(endpoint);
+    } on InsecureUrlException {
+      _log('blocked: gateway URL is not https');
+      final scheme = Uri.tryParse(endpoint)?.scheme ?? '';
+      return _finish(
+        UpdateCheckResult.error(
+          message: 'Update server URL must start with https:// '
+              '(got ${scheme.isEmpty ? 'no scheme' : '$scheme://'})',
+          currentVersionCode: currentCode,
+          currentVersionName: currentName,
+          appId: appId,
+          endpoint: safeEndpoint,
+        ),
+        'gateway URL is not https',
+      );
+    }
+
     http.Response response;
     try {
       response = await _httpClient.get(
-        Uri.parse(endpoint),
+        endpointUri,
         headers: {
           'Authorization': 'Bearer $cleanToken',
           'Accept': 'application/json',
@@ -269,12 +314,40 @@ class UpdateService {
       final hasDownloadUrl = manifest.downloadUrl.isNotEmpty;
       final downloadHost =
           hasDownloadUrl ? (Uri.tryParse(manifest.downloadUrl)?.host ?? '?') : '';
+      final downloadScheme =
+          hasDownloadUrl ? (Uri.tryParse(manifest.downloadUrl)?.scheme ?? '?') : '';
+      var downloadIsHttps = false;
+      if (hasDownloadUrl) {
+        try {
+          requireHttpsUri(manifest.downloadUrl);
+          downloadIsHttps = true;
+        } on InsecureUrlException {
+          downloadIsHttps = false;
+        }
+      }
       _log('server: v${manifest.versionName} build ${manifest.versionCode}'
           '${manifest.appId.isNotEmpty ? ' (appId ${manifest.appId})' : ''}');
       _log('server manifest: sha256 length ${manifest.sha256.length}, downloadUrl '
-          '${hasDownloadUrl ? 'present (host $downloadHost)' : 'empty'}');
+          '${hasDownloadUrl ? 'present (host $downloadHost, scheme $downloadScheme)' : 'empty'}');
 
       if (manifest.versionCode > currentCode) {
+        if (hasDownloadUrl && !downloadIsHttps) {
+          return _finish(
+            UpdateCheckResult.error(
+              message: 'Server build ${manifest.versionCode} is newer than local build '
+                  '$currentCode but the manifest has an insecure download URL '
+                  '(https required)',
+              currentVersionCode: currentCode,
+              currentVersionName: currentName,
+              appId: appId,
+              endpoint: safeEndpoint,
+              httpStatus: status,
+              remoteVersionCode: manifest.versionCode,
+              remoteVersionName: manifest.versionName,
+            ),
+            'newer build but download URL is not https',
+          );
+        }
         if (hasDownloadUrl && manifest.sha256.length == 64) {
           return _finish(
             UpdateCheckResult.updateAvailable(
@@ -342,6 +415,9 @@ class UpdateService {
     required AppReleaseManifest manifest,
     required ValueChanged<double> onProgress,
   }) async {
+    // Checked first so nothing (cache, request, installer) happens for an insecure URL.
+    final downloadUri = requireHttpsUri(manifest.downloadUrl);
+
     final baseTemp = await (_tempDirProvider != null
         ? _tempDirProvider()
         : getTemporaryDirectory());
@@ -375,7 +451,7 @@ class UpdateService {
       await apkFile.delete();
     }
 
-    final request = http.Request('GET', Uri.parse(manifest.downloadUrl));
+    final request = http.Request('GET', downloadUri);
     final streamedResponse = await _httpClient.send(request);
 
     if (streamedResponse.statusCode != 200) {

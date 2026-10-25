@@ -2,6 +2,12 @@
 
 All notable changes to **AppUpdater** will be documented in this file.
 
+## [app-updater-android 0.2.0, app_updater_flutter 0.5.0] - 2026-10-25
+- Both SDKs now refuse any URL that is not `https://` (scheme case-insensitive, host required), for the update check (which carries the Bearer token) and the APK download. No exception for localhost or emulators.
+- Kotlin: new `requireHttpsUrl` (throws `SecurityException`, message names only the scheme) used by `DefaultHttpUrlConnectionTransport` (replaces the old `IllegalArgumentException` check) and by `UpdateClient`, so custom transports are covered. `checkForUpdate` returns `Error("Update server URL must start with https://")` before the transport is called, and `Error("Update manifest has an insecure download URL (https required)")` for a newer build with a non-https `downloadUrl`; `downloadAndVerifyApk` throws before any file or network access. New `AppUpdaterVersion.kt` (`APP_UPDATER_ANDROID_VERSION`) as the version source of truth.
+- Flutter: new `requireHttpsUri` / `InsecureUrlException` in `update_service.dart`. `checkForUpdate` returns an `error` result (token never sent, log token-free) for a non-https gateway URL or download URL; the log line now reads `downloadUrl present (host X, scheme Y)`. `downloadAndInstall` throws `InsecureUrlException` before any cache, request or installer call.
+- Why: PikminFilter security audit; only the host app's `usesCleartextTraffic="false"` stopped plain HTTP. `wrangler dev` over `http://localhost` no longer works from a real app.
+
 ## [publish-release 0.2.0] - 2026-10-25
 - `scripts/publish-release.ps1` now reads the APK's real package, versionCode and versionName with `aapt2 dump badging` and refuses (before writing `dist/version.json` or uploading, so `-ManifestOnly` and `-DryRun` refuse too) when they differ from the manifest values.
 - It also refuses when aapt2 can't be found. New options: `-Aapt2Path`, `aapt2_path` in `updater.toml`, and `-SkipApkCheck` (publish unverified, with a warning). Lookup order: `-Aapt2Path`, `aapt2_path`, PATH, then `build-tools` under `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `%LOCALAPPDATA%\Android\Sdk`.

@@ -30,11 +30,13 @@ Private in-app update gateway (**Cloudflare Worker + R2**), `app-updater/1` mani
 - **PowerShell scripts (`scripts/*.ps1`):** Must be ASCII-only unless saved with a UTF-8 BOM so Windows PowerShell 5.1 parses them cleanly.
   - `publish-release.ps1` must check the APK's package, versionCode and versionName (`aapt2 dump badging`) against the manifest before writing version.json or uploading. It refuses when aapt2 is missing unless `-SkipApkCheck` is passed explicitly.
 - **Flutter SDK (`packages/app_updater_flutter`):**
+  - Only `https://` URLs may be fetched; route every URL through `requireHttpsUri`. No cleartext fallback, not even localhost (Molly, 2026-10-24).
   - Stream APK files when computing SHA-256 (`file.openRead().transform(sha256)`) rather than `readAsBytes()` to avoid OOM on large APKs.
   - Choose UI colours per theme brightness, pair every background with an explicit text colour, and check 4.5:1 contrast with a test in both light and dark themes.
   - Stack buttons or use `Wrap` inside dialogs on mobile widths (`< 400px`) to prevent `RenderFlex` overflows.
   - Avoid unmocked `CircularProgressIndicator` widgets in resting states so `tester.pumpAndSettle()` completes cleanly.
 - **Android / Kotlin SDK (`packages/app-updater-android`):**
+  - Only `https://` URLs may be fetched; route every URL through `requireHttpsUrl`. No cleartext fallback, not even localhost (Molly, 2026-10-24). SDK version lives in `AppUpdaterVersion.kt`.
   - Never use `org.json` in code tested by local JVM unit tests (`testDebugUnitTest`); use `kotlinx.serialization` to avoid `RuntimeException: Stub!`.
   - Stream downloads and pipe bytes through `MessageDigest.getInstance("SHA-256")` in a single pass.
 

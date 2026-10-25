@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-25 by Claude Code (job 01M5S3YNR5S4M48YKY8DS9WBKQ)
+Updated: 2026-10-25 by Claude Code (job 01M5NKA200W57MQ4T6XPNDFSJK)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -28,11 +28,13 @@ Updated: 2026-10-25 by Claude Code (job 01M5S3YNR5S4M48YKY8DS9WBKQ)
 - [done] Access grants, admin API and store page, Worker 0.2.0 / contract 1.1.0 (Phase 6 - Sharing apps with other people) - 33 worker tests; scripts and page checked end-to-end on local wrangler dev; not deployed
 - [done] Kotlin SDK parity: 404 and incomplete manifest as errors, HTTPS scheme enforcement, cached APK reuse (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt, DefaultHttpUrlConnectionTransport, and JUnit tests passing
 - [done] Publisher verifies APK version (Phase 5 - Field diagnostics and hardening) - publish-release 0.2.0 refuses an APK whose aapt2 badging differs from the manifest or when aapt2 is missing; written but not yet run (PowerShell blocked in the work run)
+- [done] HTTPS-only update and download URLs, Kotlin SDK 0.2.0 / Flutter SDK 0.5.0 (Phase 5 - Field diagnostics and hardening) - both SDKs refuse non-https check and download URLs, no localhost exception; Flutter tests + analyze pass, Kotlin tests not run yet
 - [waiting] Deploy sharing and first real share (Phase 6 - Sharing apps with other people) - waiting on Molly: admin secret, updater.toml keys, wrangler deploy, real phone install
 
 ## Next
 - Molly: run the publish-release 0.2.0 checks from HANDOFF (not run yet), then publish SystemPulse 1.4.7+20 via publish_apk to replace the wrong live 1.4.6 manifest
-- Rebuild WordpressLiveBlogger and the other Flutter apps against app_updater_flutter 0.4.0 (no tag yet), then check Settings > App updates > Check for Update > What's new on a phone
+- Molly: run `.\gradlew :app-updater-android:testDebugUnitTest` from a build that includes the module (e.g. PikminFilter); then rebuild PikminFilter against app-updater-android 0.2.0
+- Rebuild WordpressLiveBlogger and the other Flutter apps against app_updater_flutter 0.5.0 (https-only; no tag yet), then check Settings > App updates > Check for Update > What's new on a phone
 - Molly: deploy sharing (Worker 0.2.0) and the update.aflspace.com custom domain: set the new APP_UPDATER_ADMIN_TOKEN secret, add gateway_url (https://update.aflspace.com) + admin_token to updater.toml, deploy, check /health on the new domain, then a first real grant + listing (steps in HANDOFF 2026-10-21)
 - Molly: tag AppUpdater (main is pushed; no release tag yet), then rebuild TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse and the Switchboard app on Flutter 3.47 against it
 - Molly: send the hub message to TennisSpark and run a TennisSpark job (Details view, gateway URL https://molly-app-updater.mollysoft.workers.dev, app id com.hawkspod.tennisspark_app, bump past build 11), build it, sideload once from Google Drive, then read Settings > App updates > Details
@@ -54,6 +56,7 @@ Updated: 2026-10-25 by Claude Code (job 01M5S3YNR5S4M48YKY8DS9WBKQ)
 - [D-0010] 2026-10-23 Molly: the tile link says "What's new" when the last result has release notes and "Details" for errors, unconfigured or no check yet; when up to date the dialog still shows the current release's notes, titled "What's new in vX"
 
 - [D-0011] 2026-10-25 Molly: publish-release.ps1 refuses when aapt2 can't be found, unless -SkipApkCheck is passed explicitly
+- [D-0012] 2026-10-24 Molly: https only in both SDKs, no localhost exception
 
 ## Ideas
 - [I-0001] 2026-10-20, Molly (later): Windows desktop .zip self-updater using the artifacts map in version.json - docs/DESIGN.md

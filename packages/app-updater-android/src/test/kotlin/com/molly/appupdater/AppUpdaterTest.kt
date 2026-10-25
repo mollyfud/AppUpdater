@@ -187,20 +187,93 @@ class AppUpdaterTest {
         val transport = DefaultHttpUrlConnectionTransport()
         var threwGet = false
         try {
-            transport.getJson("http://insecure.example.com/api", "token")
-        } catch (e: IllegalArgumentException) {
+            transport.getJson("http://127.0.0.1:1/x", "t")
+        } catch (e: SecurityException) {
             threwGet = true
-            assertTrue(e.message?.contains("HTTPS") == true)
+            assertTrue(e.message?.contains("not https") == true)
         }
-        assertTrue("Expected IllegalArgumentException for insecure getJson", threwGet)
+        assertTrue("Expected SecurityException for insecure getJson", threwGet)
 
         var threwStream = false
         try {
             transport.openDownloadStream("http://insecure.example.com/file.apk")
-        } catch (e: IllegalArgumentException) {
+        } catch (e: SecurityException) {
             threwStream = true
-            assertTrue(e.message?.contains("HTTPS") == true)
+            assertTrue(e.message?.contains("not https") == true)
         }
-        assertTrue("Expected IllegalArgumentException for insecure openDownloadStream", threwStream)
+        assertTrue("Expected SecurityException for insecure openDownloadStream", threwStream)
+    }
+
+    @Test
+    fun `requireHttpsUrl accepts https in any case and rejects everything else`() {
+        assertEquals("https", requireHttpsUrl("https://updater.example.com/x").protocol)
+        assertEquals("https", requireHttpsUrl("HTTPS://updater.example.com/x").protocol)
+        for (bad in listOf("http://updater.example.com", "ftp://updater.example.com", "file:///etc/passwd", "updater.example.com/x", "", "   ")) {
+            var threw = false
+            try {
+                requireHttpsUrl(bad)
+            } catch (e: SecurityException) {
+                threw = true
+            }
+            assertTrue("Expected SecurityException for '$bad'", threw)
+        }
+    }
+
+    private class CountingTransport(private val manifestJson: String = "") : UpdateHttpTransport {
+        var getJsonCalls = 0
+        var downloadCalls = 0
+        override fun getJson(url: String, bearerToken: String): Pair<Int, String> {
+            getJsonCalls++
+            return 200 to manifestJson
+        }
+        override fun openDownloadStream(url: String): Pair<Int, DownloadStream> {
+            downloadCalls++
+            return 200 to DownloadStream(0, ByteArrayInputStream(ByteArray(0)))
+        }
+    }
+
+    @Test
+    fun `UpdateClient returns Error for http baseUrl without calling the transport`() {
+        val transport = CountingTransport()
+        val client = UpdateClient("http://updater.example.com", "token", transport)
+        val res = client.checkForUpdate("com.molly.pikminfilter", 1, "1.0.0")
+        assertTrue(res is UpdateCheckResult.Error)
+        assertTrue((res as UpdateCheckResult.Error).message.contains("https://"))
+        assertEquals(0, transport.getJsonCalls)
+    }
+
+    @Test
+    fun `UpdateClient returns Error when manifest downloadUrl is http`() {
+        val json = sampleJson(versionCode = 14, sha256 = "a".repeat(64))
+            .replace("https://updater.example.com/api", "http://updater.example.com/api")
+        val client = UpdateClient("https://updater.example.com", "token", CountingTransport(json))
+        val res = client.checkForUpdate("com.molly.pikminfilter", 10, "1.0.0")
+        assertTrue(res is UpdateCheckResult.Error)
+        assertTrue((res as UpdateCheckResult.Error).message.contains("insecure download URL"))
+    }
+
+    @Test
+    fun `downloadAndVerifyApk refuses http downloadUrl and leaves no file`() {
+        val transport = CountingTransport()
+        val client = UpdateClient("https://updater.example.com", "token", transport)
+        val tempDir = Files.createTempDirectory("kotlin_updater_http").toFile()
+        try {
+            val manifest = AppReleaseManifest.fromJsonString(
+                sampleJson(versionCode = 15, sha256 = "a".repeat(64))
+                    .replace("https://updater.example.com/api", "http://updater.example.com/api"),
+                currentVersionCode = 11
+            )
+            var threw = false
+            try {
+                client.downloadAndVerifyApk(manifest, tempDir)
+            } catch (e: SecurityException) {
+                threw = true
+            }
+            assertTrue("Expected SecurityException", threw)
+            assertEquals(0, transport.downloadCalls)
+            assertTrue(tempDir.walkTopDown().none { it.isFile })
+        } finally {
+            tempDir.deleteRecursively()
+        }
     }
 }

@@ -2,6 +2,14 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-25 - Claude Code (HTTPS-only SDKs; Switchboard work run for job 01M5NKA200W57MQ4T6XPNDFSJK)
+- **Did:** Kotlin `UpdateClient.kt`: `requireHttpsUrl` (SecurityException) used by the default transport and by `checkForUpdate` / `downloadAndVerifyApk`; new `AppUpdaterVersion.kt`; tests in `AppUpdaterTest.kt` (old IllegalArgumentException test replaced). Flutter `update_service.dart`: `requireHttpsUri` / `InsecureUrlException`, checked for gateway URL, manifest downloadUrl and `downloadAndInstall` (first thing, before cache); 4 new tests; one existing log assertion updated for the new "scheme https" log text. CHANGELOG, AGENTS.md, PLAN (part, Next, D-0012) updated. The PikminFilter inbox item was already removed by the earlier Antigravity entry (plain `require` check); this run replaces it with the full version. Message to PikminFilter in the run output. Switchboard commits; no hash.
+- **Versions:** app-updater-android 0.1.0 -> 0.2.0, app_updater_flutter 0.4.0 -> 0.5.0.
+- **Decisions:** Molly (2026-10-24): https only in both SDKs, no localhost exception (D-0012).
+- **Verified:** Flutter `flutter analyze` clean, `flutter test` 25/25 pass; `pubspec.lock` unchanged in `git status`.
+- **Not verified / next:** Kotlin tests NOT run (no Gradle build here); Molly runs `.\gradlew :app-updater-android:testDebugUnitTest` from PikminFilter. The Kotlin code was not even compiled.
+- **Gotchas:** a repo mismatch with the plan: Kotlin already had an `IllegalArgumentException` https check in the transport (added earlier today); it was replaced, so callers catching `IllegalArgumentException` now need `SecurityException`.
+
 ### 2026-10-25 - Claude Code (Publisher checks APK version with aapt2; Switchboard work run for job 01M5S3YNR5S4M48YKY8DS9WBKQ)
 - **Did:** `scripts/publish-release.ps1` 0.1.0 -> 0.2.0: `Find-Aapt2`, `Get-ApkBadging`, step 3b compares package/versionCode/versionName from `aapt2 dump badging` with the manifest values and throws before version.json is written; fallback-APK warning; new `-Aapt2Path`, `-SkipApkCheck`, `aapt2_path` in updater.toml. CHANGELOG, README, contracts/README, AGENTS.md bullet, PLAN (part, Next, D-0011) updated. Messages to SystemPulse and Switchboard in the run output. Switchboard commits; no hash.
 - **Versions:** publish-release 0.1.0 -> 0.2.0 (no contract change).

@@ -252,6 +252,69 @@ void main() {
       expect(result.summary, contains('missing: gateway URL, token'));
     });
 
+    test('refuses an http:// gateway URL without sending a request or the token', () async {
+      final service = UpdateService(
+        baseUrl: 'http://localhost:8787',
+        authToken: 'shared-token-123',
+        httpClient: MockClient((_) async => fail('no request expected')),
+        packageInfoLoader: () async => _fakePackageInfo(),
+      );
+      final result = await service.checkForUpdate();
+      expect(result.status, UpdateCheckStatus.error);
+      expect(result.errorMessage, contains('must start with https://'));
+      expect(service.lastCheckReport, contains('https'));
+      expect(service.lastCheckReport, isNot(contains('shared-token-123')));
+    });
+
+    test('accepts an uppercase HTTPS:// gateway URL', () async {
+      final service = UpdateService(
+        baseUrl: 'HTTPS://updater.example.com',
+        authToken: 'shared-token-123',
+        httpClient: MockClient((req) async =>
+            http.Response.bytes(utf8.encode(jsonEncode(_sampleManifestJson())), 200)),
+        packageInfoLoader: () async => _fakePackageInfo(buildNumber: '10'),
+      );
+      final result = await service.checkForUpdate();
+      expect(result.hasUpdate, isTrue);
+    });
+
+    test('newer build with an http:// download URL is an error, not updateAvailable', () async {
+      final service = _serviceReturning((_) => _jsonResponse(
+            _sampleManifestJson(downloadUrlOverride: 'http://updater.example.com/a.apk'),
+            200,
+          ));
+      final result = await service.checkForUpdate();
+      expect(result.status, UpdateCheckStatus.error);
+      expect(result.errorMessage, contains('insecure download URL'));
+    });
+
+    test('downloadAndInstall refuses an http:// download URL before any I/O', () async {
+      final tempDir = await Directory.systemTemp.createTemp('app_updater_http_');
+      addTearDown(() async {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+      var launched = false;
+      final service = UpdateService(
+        baseUrl: 'https://updater.example.com',
+        authToken: 'shared-token-123',
+        httpClient: MockClient.streaming((req, body) async => fail('no request expected')),
+        tempDirProvider: () async => tempDir,
+        installerLauncher: (_) async => launched = true,
+      );
+      final manifest = AppReleaseManifest.fromJson(
+        _sampleManifestJson(downloadUrlOverride: 'http://updater.example.com/a.apk'),
+        currentVersionCode: 10,
+      );
+      await expectLater(
+        () => service.downloadAndInstall(manifest: manifest, onProgress: (_) {}),
+        throwsA(isA<InsecureUrlException>()),
+      );
+      expect(launched, isFalse);
+      expect(tempDir.listSync(recursive: true), isEmpty);
+    });
+
     test('keeps a token-free log of the last check and resets it per check', () async {
       var code = 10;
       final service = _serviceReturning(
@@ -273,7 +336,7 @@ void main() {
       expect(report, isNot(contains('shared-token-123')));
       expect(report, isNot(contains('sig=abc')));
       expect(report, isNot(contains('expires=')));
-      expect(report, contains('downloadUrl present (host updater.example.com)'));
+      expect(report, contains('downloadUrl present (host updater.example.com, scheme https)'));
       expect(service.lastResult?.status, UpdateCheckStatus.upToDate);
       expect(service.lastResult?.hasUpdate, isFalse);
       expect(service.lastResult?.manifest, isNotNull);

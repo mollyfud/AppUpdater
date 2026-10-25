@@ -5,6 +5,7 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URI
+import java.net.URL
 import java.net.URLEncoder
 import java.security.MessageDigest
 
@@ -18,16 +19,31 @@ data class DownloadStream(
     val stream: InputStream
 )
 
+/**
+ * Parses [url] and returns it only if it is `https://` with a host. No exceptions, not even
+ * localhost. Route every URL the SDK fetches through this.
+ * Throws [SecurityException]; the message names only the scheme, never the URL (download URLs
+ * carry a signature).
+ */
+internal fun requireHttpsUrl(url: String): URL {
+    val uri = try {
+        URI.create(url.trim())
+    } catch (e: IllegalArgumentException) {
+        throw SecurityException("Refusing insecure update URL: it could not be parsed (https required)")
+    }
+    val scheme = uri.scheme
+    if (scheme == null || !scheme.equals("https", ignoreCase = true) || uri.host.isNullOrBlank()) {
+        throw SecurityException("Refusing insecure update URL: scheme '${scheme ?: "(none)"}' is not https")
+    }
+    return uri.toURL()
+}
+
 class DefaultHttpUrlConnectionTransport(
     private val connectTimeoutMs: Int = 10_000,
     private val readTimeoutMs: Int = 30_000
 ) : UpdateHttpTransport {
     override fun getJson(url: String, bearerToken: String): Pair<Int, String> {
-        val uri = URI.create(url)
-        require(uri.scheme.equals("https", ignoreCase = true)) {
-            "Insecure scheme '${uri.scheme}': AppUpdater requires HTTPS."
-        }
-        val conn = (uri.toURL().openConnection() as HttpURLConnection).apply {
+        val conn = (requireHttpsUrl(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = connectTimeoutMs
             readTimeout = readTimeoutMs
@@ -45,11 +61,7 @@ class DefaultHttpUrlConnectionTransport(
     }
 
     override fun openDownloadStream(url: String): Pair<Int, DownloadStream> {
-        val uri = URI.create(url)
-        require(uri.scheme.equals("https", ignoreCase = true)) {
-            "Insecure scheme '${uri.scheme}': AppUpdater requires HTTPS."
-        }
-        val conn = (uri.toURL().openConnection() as HttpURLConnection).apply {
+        val conn = (requireHttpsUrl(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = connectTimeoutMs
             readTimeout = readTimeoutMs
@@ -68,6 +80,10 @@ class UpdateClient(
     /**
      * Checks `GET /api/v1/update/:appId` for a newer release.
      * Safe to invoke from `Dispatchers.IO`.
+     *
+     * Only `https://` is accepted, with no localhost exception: a non-https gateway URL returns
+     * [UpdateCheckResult.Error] before the transport (and the token) is touched, and so does a
+     * manifest whose `downloadUrl` is not https.
      */
     fun checkForUpdate(
         appId: String,
@@ -87,6 +103,16 @@ class UpdateClient(
             "$cleanBase/$encodedAppId"
         } else {
             "$cleanBase/api/v1/update/$encodedAppId"
+        }
+
+        try {
+            requireHttpsUrl(endpoint)
+        } catch (e: SecurityException) {
+            return UpdateCheckResult.Error(
+                message = "Update server URL must start with https://",
+                currentVersionCode = currentVersionCode,
+                currentVersionName = currentVersionName
+            )
         }
 
         val (status, body) = try {
@@ -134,7 +160,19 @@ class UpdateClient(
         return try {
             val manifest = AppReleaseManifest.fromJsonString(body, currentVersionCode)
             if (manifest.versionCode > currentVersionCode) {
-                if (manifest.downloadUrl.isNotBlank() && manifest.sha256.length == 64) {
+                val downloadIsHttps = manifest.downloadUrl.isBlank() || try {
+                    requireHttpsUrl(manifest.downloadUrl)
+                    true
+                } catch (e: SecurityException) {
+                    false
+                }
+                if (!downloadIsHttps) {
+                    UpdateCheckResult.Error(
+                        message = "Update manifest has an insecure download URL (https required)",
+                        currentVersionCode = currentVersionCode,
+                        currentVersionName = currentVersionName
+                    )
+                } else if (manifest.downloadUrl.isNotBlank() && manifest.sha256.length == 64) {
                     UpdateCheckResult.UpdateAvailable(
                         currentVersionCode = currentVersionCode,
                         currentVersionName = currentVersionName,
@@ -164,12 +202,16 @@ class UpdateClient(
      * SHA-256 checksum in a single streaming pass (`MessageDigest`), and verifies it against
      * [manifest.sha256]. Deletes the file and throws [SecurityException] if the hash does not match.
      * Reuses an already-downloaded file if its checksum matches [manifest.sha256].
+     * Throws [SecurityException] before any file or network access if [manifest.downloadUrl] is
+     * not `https://` (no localhost exception).
      */
     fun downloadAndVerifyApk(
         manifest: AppReleaseManifest,
         cacheDir: File,
         onProgress: (Float) -> Unit = {}
     ): File {
+        requireHttpsUrl(manifest.downloadUrl)
+
         val updatesDir = File(cacheDir, "updates")
         if (!updatesDir.exists()) {
             updatesDir.mkdirs()
