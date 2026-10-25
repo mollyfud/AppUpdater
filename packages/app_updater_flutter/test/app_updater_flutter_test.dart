@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:app_updater_flutter/app_updater_flutter.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/material.dart' as fm;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -137,6 +138,32 @@ void main() {
         );
       });
     }
+  });
+
+  group('AppReleaseManifest tolerance', () {
+    test('oddly typed or missing optional fields parse without error', () {
+      final m = AppReleaseManifest.fromJson({
+        'versionCode': '19',
+        'versionName': 1.46,
+        'releaseNotes': null,
+        'fileSize': '1234',
+        'artifacts': {'windows': {'key': 'a.zip', 'sha256': 'AB', 'fileSize': 5}},
+      }, currentVersionCode: 18);
+      expect(m.versionCode, 19);
+      expect(m.versionName, '1.46');
+      expect(m.releaseNotes, '');
+      expect(m.fileSize, 1234);
+      expect(m.minRequiredVersionCode, 1);
+      expect(m.artifacts['windows']?.sha256, 'ab');
+    });
+
+    test('list releaseNotes are joined with newlines', () {
+      final m = AppReleaseManifest.fromJson({
+        'versionCode': 2,
+        'releaseNotes': ['One', 'Two'],
+      }, currentVersionCode: 1);
+      expect(m.releaseNotes, 'One\nTwo');
+    });
   });
 
   group('UpdateService', () {
@@ -490,7 +517,94 @@ void main() {
       await tester.pumpAndSettle();
       final status = tester.widget<Text>(find.byKey(const Key('check-for-update-status'))).data!;
       expect(status, contains('could not be shown'));
+      expect(status, contains('No Navigator above the update widget'));
       expect(service.lastCheckReport, contains('dialog error:'));
+    });
+
+    for (final brightness in [Brightness.light, Brightness.dark]) {
+      testWidgets('flutter/material app: tile opens the dialog (${brightness.name})', (tester) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14), 200));
+        await tester.pumpWidget(
+          fm.MaterialApp(
+            theme: fm.ThemeData(brightness: brightness),
+            home: fm.Scaffold(body: CheckForUpdateTile(updateService: service)),
+          ),
+        );
+        final palette = UpdateDialogColors.forBrightness(brightness);
+
+        await tester.tap(find.byKey(const Key('check-for-update-button')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('Update Now'), findsOneWidget);
+        final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
+        expect(dialog.backgroundColor, palette.dialogBackground);
+
+        await tester.tap(find.byKey(const Key('update-later-button')));
+        await tester.pumpAndSettle();
+        expect(find.text('Update Now'), findsNothing);
+
+        await tester.tap(find.byKey(const Key('check-for-update-details')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.byKey(const Key('check-for-update-release-notes')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('check-for-update-details-close')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('check-for-update-release-notes')), findsNothing);
+      });
+    }
+
+    testWidgets('flutter/material app: checkOnLaunch opens the dialog', (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14), 200));
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        fm.MaterialApp(home: fm.Scaffold(body: Builder(builder: (c) {
+          ctx = c;
+          return const SizedBox();
+        }))),
+      );
+      final future = UpdatePromptDialog.checkOnLaunch(ctx, updateService: service);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Update Now'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('update-later-button')));
+      await tester.pumpAndSettle();
+      expect((await future).hasUpdate, isTrue);
+    });
+
+    testWidgets('manifest with only the required fields still opens the dialog', (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final full = _sampleManifestJson(versionCode: 14);
+      final minimal = {
+        for (final k in ['schema', 'appId', 'versionName', 'versionCode', 'releaseDate', 'apkKey', 'sha256', 'downloadUrl'])
+          k: full[k],
+      };
+      final service = _serviceReturning((_) => _jsonResponse(minimal, 200));
+      await tester.pumpWidget(
+        fm.MaterialApp(home: fm.Scaffold(body: CheckForUpdateTile(updateService: service))),
+      );
+      await tester.tap(find.byKey(const Key('check-for-update-button')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(service.lastResult?.status, UpdateCheckStatus.updateAvailable);
+      expect(find.text('Bug fixes and improvements.'), findsOneWidget);
     });
 
     for (final brightness in [Brightness.light, Brightness.dark]) {

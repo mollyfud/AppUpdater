@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'host_material.dart';
 import 'manifest.dart';
 import 'update_dialog.dart';
 import 'update_service.dart';
@@ -48,28 +49,30 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
     if (!mounted) return;
     _lastResult = result;
 
-    if (result.hasUpdate && result.manifest != null) {
+    final manifest = result.manifest;
+    if (result.hasUpdate && manifest != null) {
+      final label = describeRelease(manifest);
       setState(() {
         _isChecking = false;
-        _statusMessage =
-            'Update v${result.manifest!.versionName} (build ${result.manifest!.versionCode}) is available!';
+        _statusMessage = '$label is available!';
         _isError = false;
       });
       try {
-        await showDialog<void>(
-          context: context,
-          barrierDismissible: !result.manifest!.isMandatory,
+        await showUpdaterDialog<void>(
+          context,
+          barrierDismissible: !manifest.isMandatory,
           builder: (_) => UpdatePromptDialog(
-            manifest: result.manifest!,
+            manifest: manifest,
             updateService: widget.updateService,
           ),
         );
       } catch (e, st) {
         widget.updateService.recordDialogFailure(e, st);
         if (!mounted) return;
+        final reason = e is StateError ? e.message : '$e';
         setState(() {
           _statusMessage =
-              'Update v${result.manifest!.versionName} is available but the update dialog could not be shown: $e';
+              '$label is available but the update dialog could not be shown: $reason';
           _isError = true;
         });
       }
@@ -87,11 +90,11 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
   Future<void> _showDetails() async {
     final report = widget.updateService.lastCheckReport;
     final manifest = _lastResult?.manifest;
-    await showDialog<void>(
-      context: context,
+    await showUpdaterDialog<void>(
+      context,
       builder: (dialogContext) {
         final palette =
-            UpdateDialogColors.forBrightness(Theme.of(dialogContext).brightness);
+            UpdateDialogColors.forBrightness(hostBrightness(dialogContext));
         var showLog = manifest == null;
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -109,7 +112,10 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text("What's new in v${manifest.versionName}",
+                        Text(
+                            manifest.versionName.isEmpty
+                                ? "What's new in build ${manifest.versionCode}"
+                                : "What's new in v${manifest.versionName}",
                             style: titleStyle),
                         Text(
                           '(build ${manifest.versionCode})',
@@ -194,8 +200,7 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final palette = UpdateDialogColors.forBrightness(brightness);
+    final palette = UpdateDialogColors.forBrightness(hostBrightness(context));
 
     return Container(
       padding: const EdgeInsets.all(12),

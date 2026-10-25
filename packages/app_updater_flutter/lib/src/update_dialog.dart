@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'host_material.dart';
 import 'manifest.dart';
 import 'update_service.dart';
 
@@ -91,13 +92,14 @@ class UpdatePromptDialog extends StatefulWidget {
     final result = await updateService.checkForUpdate(
       appIdOverride: appIdOverride,
     );
-    if (result.hasUpdate && context.mounted) {
+    final manifest = result.manifest;
+    if (result.hasUpdate && manifest != null && context.mounted) {
       try {
-        await showDialog<void>(
-          context: context,
-          barrierDismissible: !result.manifest!.isMandatory,
+        await showUpdaterDialog<void>(
+          context,
+          barrierDismissible: !manifest.isMandatory,
           builder: (_) => UpdatePromptDialog(
-            manifest: result.manifest!,
+            manifest: manifest,
             updateService: updateService,
           ),
         );
@@ -156,17 +158,19 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final palette = UpdateDialogColors.forBrightness(brightness);
+    final palette = UpdateDialogColors.forBrightness(hostBrightness(context));
     final sizeText = _formatBytes(widget.manifest.fileSize);
 
     return PopScope(
       canPop: !widget.manifest.isMandatory && !_isDownloading,
       child: AlertDialog(
+        semanticLabel: 'Update available',
         backgroundColor: palette.dialogBackground,
         surfaceTintColor: Colors.transparent,
         title: Text(
-          'Update v${widget.manifest.versionName} Available',
+          widget.manifest.versionName.isEmpty
+              ? 'Update available (build ${widget.manifest.versionCode})'
+              : 'Update v${widget.manifest.versionName} Available',
           style: TextStyle(
             color: palette.titleColor,
             fontWeight: FontWeight.w700,

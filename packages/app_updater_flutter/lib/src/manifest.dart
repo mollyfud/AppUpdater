@@ -1,3 +1,18 @@
+String _str(Object? v) {
+  if (v is String) return v.trim();
+  if (v is num || v is bool) return v.toString();
+  return '';
+}
+
+int _int(Object? v, int fallback) {
+  if (v is num) return v.toInt();
+  if (v is String) {
+    final t = v.trim();
+    return int.tryParse(t) ?? double.tryParse(t)?.toInt() ?? fallback;
+  }
+  return fallback;
+}
+
 class AppArtifactInfo {
   final String key;
   final String sha256;
@@ -13,10 +28,11 @@ class AppArtifactInfo {
 
   factory AppArtifactInfo.fromJson(Map<String, dynamic> json) {
     return AppArtifactInfo(
-      key: (json['key'] as String? ?? '').trim(),
-      sha256: (json['sha256'] as String? ?? '').trim().toLowerCase(),
-      fileSize: (json['fileSize'] as num?)?.toInt() ?? 0,
-      downloadUrl: json['downloadUrl'] as String?,
+      key: _str(json['key']),
+      sha256: _str(json['sha256']).toLowerCase(),
+      fileSize: _int(json['fileSize'], 0),
+      downloadUrl:
+          json['downloadUrl'] is String ? json['downloadUrl'] as String : null,
     );
   }
 }
@@ -58,16 +74,18 @@ class AppReleaseManifest {
     Map<String, dynamic> json, {
     required int currentVersionCode,
   }) {
-    final versionCode = (json['versionCode'] as num?)?.toInt() ?? 0;
-    final minReq = (json['minRequiredVersionCode'] as num?)?.toInt() ?? 1;
+    final versionCode = _int(json['versionCode'], 0);
+    final minReq = _int(json['minRequiredVersionCode'], 1);
     final rawArtifacts = json['artifacts'];
+    final rawNotes = json['releaseNotes'];
+    final schema = _str(json['schema']);
     final parsedArtifacts = <String, AppArtifactInfo>{};
     if (rawArtifacts is Map) {
       for (final entry in rawArtifacts.entries) {
-        if (entry.key is String && entry.value is Map<String, dynamic>) {
+        if (entry.key is String && entry.value is Map) {
           try {
             parsedArtifacts[entry.key as String] = AppArtifactInfo.fromJson(
-              entry.value as Map<String, dynamic>,
+              Map<String, dynamic>.from(entry.value as Map),
             );
           } catch (_) {
             // Ignore malformed artifact entries so the primary manifest still works
@@ -77,18 +95,20 @@ class AppReleaseManifest {
     }
 
     return AppReleaseManifest(
-      schema: (json['schema'] as String? ?? 'app-updater/1').trim(),
-      appId: (json['appId'] as String? ?? '').trim(),
-      project: (json['project'] as String? ?? '').trim(),
-      versionName: (json['versionName'] as String? ?? '').trim(),
+      schema: schema.isEmpty ? 'app-updater/1' : schema,
+      appId: _str(json['appId']),
+      project: _str(json['project']),
+      versionName: _str(json['versionName']),
       versionCode: versionCode,
       minRequiredVersionCode: minReq,
-      releaseDate: (json['releaseDate'] as String? ?? '').trim(),
-      releaseNotes: (json['releaseNotes'] as String? ?? '').trim(),
-      apkKey: (json['apkKey'] as String? ?? '').trim(),
-      sha256: (json['sha256'] as String? ?? '').trim().toLowerCase(),
-      fileSize: (json['fileSize'] as num?)?.toInt() ?? 0,
-      downloadUrl: (json['downloadUrl'] as String? ?? '').trim(),
+      releaseDate: _str(json['releaseDate']),
+      releaseNotes: rawNotes is List
+          ? rawNotes.map(_str).where((l) => l.isNotEmpty).join('\n')
+          : _str(rawNotes),
+      apkKey: _str(json['apkKey']),
+      sha256: _str(json['sha256']).toLowerCase(),
+      fileSize: _int(json['fileSize'], 0),
+      downloadUrl: _str(json['downloadUrl']),
       isMandatory: currentVersionCode < minReq,
       artifacts: parsedArtifacts,
     );

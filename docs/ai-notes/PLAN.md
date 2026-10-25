@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-25 by Claude Code (job 01M5NKA200W57MQ4T6XPNDFSJK)
+Updated: 2026-10-25 by Claude Code (job 01M5S3YNR598AHG696ZJ10S3JY)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -29,9 +29,11 @@ Updated: 2026-10-25 by Claude Code (job 01M5NKA200W57MQ4T6XPNDFSJK)
 - [done] Kotlin SDK parity: 404 and incomplete manifest as errors, HTTPS scheme enforcement, cached APK reuse (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt, DefaultHttpUrlConnectionTransport, and JUnit tests passing
 - [done] Publisher verifies APK version (Phase 5 - Field diagnostics and hardening) - publish-release 0.2.0 refuses an APK whose aapt2 badging differs from the manifest or when aapt2 is missing; written but not yet run (PowerShell blocked in the work run)
 - [done] HTTPS-only update and download URLs, Kotlin SDK 0.2.0 / Flutter SDK 0.5.0 (Phase 5 - Field diagnostics and hardening) - both SDKs refuse non-https check and download URLs, no localhost exception; Flutter tests + analyze pass, Kotlin tests not run yet
+- [in-progress 80%] Dialog works under flutter/material and material_ui apps, Flutter SDK 0.5.1 (Phase 5 - Field diagnostics and hardening) - code, tests and analyze written (analyze clean); flutter test not run in the run, release-APK check on a phone left
 - [waiting] Deploy sharing and first real share (Phase 6 - Sharing apps with other people) - waiting on Molly: admin secret, updater.toml keys, wrangler deploy, real phone install
 
 ## Next
+- Run `flutter test` in packages/app_updater_flutter (not run in job 01M5S3YNR598AHG696ZJ10S3JY), then rebuild SystemPulse against 0.5.1 and confirm the update dialog opens in a release APK
 - Molly: run the publish-release 0.2.0 checks from HANDOFF (not run yet), then publish SystemPulse 1.4.7+20 via publish_apk to replace the wrong live 1.4.6 manifest
 - Molly: run `.\gradlew :app-updater-android:testDebugUnitTest` from a build that includes the module (e.g. PikminFilter); then rebuild PikminFilter against app-updater-android 0.2.0
 - Rebuild WordpressLiveBlogger and the other Flutter apps against app_updater_flutter 0.5.0 (https-only; no tag yet), then check Settings > App updates > Check for Update > What's new on a phone
