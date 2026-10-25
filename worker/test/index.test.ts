@@ -11,7 +11,7 @@ const SAMPLE_MANIFEST = {
   versionCode: 14,
   minRequiredVersionCode: 12,
   releaseDate: "2026-10-20T08:00:00Z",
-  releaseNotes: "• Added offline caching\n• Fixed sync timeout",
+  releaseNotes: "â€¢ Added offline caching\nâ€¢ Fixed sync timeout",
   apkKey: "com.molly.pikminfilter/builds/PikminFilter-v1.3.0.apk",
   sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   fileSize: 12,
@@ -116,6 +116,7 @@ describe("AppUpdater Cloudflare Worker Gateway", () => {
     const req = new Request("https://updater.example.com/api/v1/version/com.molly.pikminfilter");
     const res = await worker.fetch(req, env);
     assert.equal(res.status, 200);
+    assert.equal(res.headers.get("Access-Control-Allow-Origin"), "*");
     const body = (await res.json()) as Record<string, unknown>;
     assert.equal(body.version, "1.3.0");
     assert.equal(body.versionName, "1.3.0");
@@ -123,6 +124,14 @@ describe("AppUpdater Cloudflare Worker Gateway", () => {
     assert.equal(body.project, "PikminFilter");
     assert.equal("downloadUrl" in body, false);
     assert.equal("apkKey" in body, false);
+
+    // OPTIONS preflight check
+    const optionsReq = new Request("https://updater.example.com/api/v1/version/com.molly.pikminfilter", {
+      method: "OPTIONS",
+    });
+    const optionsRes = await worker.fetch(optionsReq, env);
+    assert.equal(optionsRes.status, 204);
+    assert.equal(optionsRes.headers.get("Access-Control-Allow-Origin"), "*");
   });
 
   it("GET /api/v1/update/:appId rejects missing or wrong Bearer token with 403", async () => {

@@ -23,7 +23,11 @@ class DefaultHttpUrlConnectionTransport(
     private val readTimeoutMs: Int = 30_000
 ) : UpdateHttpTransport {
     override fun getJson(url: String, bearerToken: String): Pair<Int, String> {
-        val conn = (URI.create(url).toURL().openConnection() as HttpURLConnection).apply {
+        val uri = URI.create(url)
+        require(uri.scheme.equals("https", ignoreCase = true)) {
+            "Insecure scheme '${uri.scheme}': AppUpdater requires HTTPS."
+        }
+        val conn = (uri.toURL().openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = connectTimeoutMs
             readTimeout = readTimeoutMs
@@ -41,7 +45,11 @@ class DefaultHttpUrlConnectionTransport(
     }
 
     override fun openDownloadStream(url: String): Pair<Int, DownloadStream> {
-        val conn = (URI.create(url).toURL().openConnection() as HttpURLConnection).apply {
+        val uri = URI.create(url)
+        require(uri.scheme.equals("https", ignoreCase = true)) {
+            "Insecure scheme '${uri.scheme}': AppUpdater requires HTTPS."
+        }
+        val conn = (uri.toURL().openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = connectTimeoutMs
             readTimeout = readTimeoutMs
@@ -85,25 +93,39 @@ class UpdateClient(
             transport.getJson(endpoint, cleanToken)
         } catch (e: Exception) {
             return UpdateCheckResult.Error(
-                message = "Could not connect to update server (${e.message})",
+                message = "Could not connect to update server at $endpoint (${e.message})",
                 currentVersionCode = currentVersionCode,
                 currentVersionName = currentVersionName
             )
         }
 
         if (status == 404) {
-            return UpdateCheckResult.UpToDate(currentVersionCode, currentVersionName)
+            val serverError = try {
+                AppReleaseManifest.parseTopLevelJsonFields(body)["error"]
+            } catch (_: Exception) {
+                null
+            }
+            val errorMsg = if (serverError == "App manifest not found") {
+                "Server has no release for $cleanAppId (HTTP 404)"
+            } else {
+                "Update endpoint not found at $endpoint (HTTP 404) - check the gateway URL"
+            }
+            return UpdateCheckResult.Error(
+                message = errorMsg,
+                currentVersionCode = currentVersionCode,
+                currentVersionName = currentVersionName
+            )
         }
         if (status == 401 || status == 403) {
             return UpdateCheckResult.Error(
-                message = "Update check unauthorized (HTTP $status)",
+                message = "Update check unauthorized (HTTP $status) at $endpoint",
                 currentVersionCode = currentVersionCode,
                 currentVersionName = currentVersionName
             )
         }
         if (status != 200) {
             return UpdateCheckResult.Error(
-                message = "Update server returned HTTP $status",
+                message = "Update server returned HTTP $status at $endpoint",
                 currentVersionCode = currentVersionCode,
                 currentVersionName = currentVersionName
             )
@@ -111,15 +133,20 @@ class UpdateClient(
 
         return try {
             val manifest = AppReleaseManifest.fromJsonString(body, currentVersionCode)
-            if (manifest.versionCode > currentVersionCode &&
-                manifest.downloadUrl.isNotBlank() &&
-                manifest.sha256.length == 64
-            ) {
-                UpdateCheckResult.UpdateAvailable(
-                    currentVersionCode = currentVersionCode,
-                    currentVersionName = currentVersionName,
-                    manifest = manifest
-                )
+            if (manifest.versionCode > currentVersionCode) {
+                if (manifest.downloadUrl.isNotBlank() && manifest.sha256.length == 64) {
+                    UpdateCheckResult.UpdateAvailable(
+                        currentVersionCode = currentVersionCode,
+                        currentVersionName = currentVersionName,
+                        manifest = manifest
+                    )
+                } else {
+                    UpdateCheckResult.Error(
+                        message = "Server build ${manifest.versionCode} is newer than local build $currentVersionCode but its manifest is incomplete",
+                        currentVersionCode = currentVersionCode,
+                        currentVersionName = currentVersionName
+                    )
+                }
             } else {
                 UpdateCheckResult.UpToDate(currentVersionCode, currentVersionName)
             }
@@ -136,6 +163,7 @@ class UpdateClient(
      * Streams the APK download to `cacheDir/updates/update-v<versionCode>.apk`, computes the
      * SHA-256 checksum in a single streaming pass (`MessageDigest`), and verifies it against
      * [manifest.sha256]. Deletes the file and throws [SecurityException] if the hash does not match.
+     * Reuses an already-downloaded file if its checksum matches [manifest.sha256].
      */
     fun downloadAndVerifyApk(
         manifest: AppReleaseManifest,
@@ -147,7 +175,27 @@ class UpdateClient(
             updatesDir.mkdirs()
         }
         val apkFile = File(updatesDir, "update-v${manifest.versionCode}.apk")
+
+        // Reuse verified cached APK if already fully downloaded and hash matches
         if (apkFile.exists()) {
+            try {
+                val digest = MessageDigest.getInstance("SHA-256")
+                apkFile.inputStream().use { stream ->
+                    val buffer = ByteArray(16 * 1024)
+                    while (true) {
+                        val read = stream.read(buffer)
+                        if (read == -1) break
+                        digest.update(buffer, 0, read)
+                    }
+                }
+                val existingHash = digest.digest().joinToString("") { "%02x".format(it) }
+                if (existingHash.equals(manifest.sha256, ignoreCase = true)) {
+                    onProgress(1.0f)
+                    return apkFile
+                }
+            } catch (_: Exception) {
+                // If unreadable, fall through and delete
+            }
             apkFile.delete()
         }
 
@@ -161,22 +209,29 @@ class UpdateClient(
         val digest = MessageDigest.getInstance("SHA-256")
         var receivedBytes = 0L
 
-        download.stream.use { input ->
-            FileOutputStream(apkFile).use { output ->
-                val buffer = ByteArray(16 * 1024)
-                while (true) {
-                    val read = input.read(buffer)
-                    if (read == -1) break
-                    output.write(buffer, 0, read)
-                    digest.update(buffer, 0, read)
-                    receivedBytes += read
-                    if (totalBytes > 0) {
-                        val fraction = (receivedBytes.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f)
-                        onProgress(fraction)
+        try {
+            download.stream.use { input ->
+                FileOutputStream(apkFile).use { output ->
+                    val buffer = ByteArray(16 * 1024)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read == -1) break
+                        output.write(buffer, 0, read)
+                        digest.update(buffer, 0, read)
+                        receivedBytes += read
+                        if (totalBytes > 0) {
+                            val fraction = (receivedBytes.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f)
+                            onProgress(fraction)
+                        }
                     }
+                    output.flush()
                 }
-                output.flush()
             }
+        } catch (e: Exception) {
+            if (apkFile.exists()) {
+                apkFile.delete()
+            }
+            throw e
         }
 
         val actualHash = digest.digest().joinToString("") { "%02x".format(it) }

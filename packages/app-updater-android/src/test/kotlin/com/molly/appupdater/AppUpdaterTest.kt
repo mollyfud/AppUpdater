@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayInputStream
+import java.io.File
 import java.nio.file.Files
 import java.security.MessageDigest
 
@@ -92,6 +93,48 @@ class AppUpdaterTest {
     }
 
     @Test
+    fun `UpdateClient checkForUpdate treats 404 as error distinguishing manifest missing vs route missing`() {
+        val transportAppNotFound = object : UpdateHttpTransport {
+            override fun getJson(url: String, bearerToken: String): Pair<Int, String> {
+                return 404 to """{"error":"App manifest not found"}"""
+            }
+            override fun openDownloadStream(url: String): Pair<Int, DownloadStream> = throw UnsupportedOperationException()
+        }
+
+        val clientAppNotFound = UpdateClient("https://updater.example.com", "token", transportAppNotFound)
+        val res1 = clientAppNotFound.checkForUpdate("com.molly.pikminfilter", 1, "1.0.0")
+        assertTrue(res1 is UpdateCheckResult.Error)
+        assertEquals("Server has no release for com.molly.pikminfilter (HTTP 404)", (res1 as UpdateCheckResult.Error).message)
+
+        val transportRouteNotFound = object : UpdateHttpTransport {
+            override fun getJson(url: String, bearerToken: String): Pair<Int, String> {
+                return 404 to "Not Found"
+            }
+            override fun openDownloadStream(url: String): Pair<Int, DownloadStream> = throw UnsupportedOperationException()
+        }
+
+        val clientRouteNotFound = UpdateClient("https://updater.example.com", "token", transportRouteNotFound)
+        val res2 = clientRouteNotFound.checkForUpdate("com.molly.pikminfilter", 1, "1.0.0")
+        assertTrue(res2 is UpdateCheckResult.Error)
+        assertTrue((res2 as UpdateCheckResult.Error).message.contains("Update endpoint not found at"))
+    }
+
+    @Test
+    fun `UpdateClient checkForUpdate returns error on newer version with incomplete manifest`() {
+        val fakeTransport = object : UpdateHttpTransport {
+            override fun getJson(url: String, bearerToken: String): Pair<Int, String> {
+                return 200 to sampleJson(versionCode = 14, sha256 = "short")
+            }
+            override fun openDownloadStream(url: String): Pair<Int, DownloadStream> = throw UnsupportedOperationException()
+        }
+
+        val client = UpdateClient("https://updater.example.com", "token", fakeTransport)
+        val res = client.checkForUpdate("com.molly.pikminfilter", 10, "1.0.0")
+        assertTrue(res is UpdateCheckResult.Error)
+        assertTrue((res as UpdateCheckResult.Error).message.contains("manifest is incomplete"))
+    }
+
+    @Test
     fun `UpdateClient downloadAndVerifyApk streams and verifies SHA-256 and rejects mismatch`() {
         val apkBytes = "VERIFIED_KOTLIN_APK_CONTENT".toByteArray(Charsets.UTF_8)
         val validSha = sha256Hex(apkBytes)
@@ -118,6 +161,10 @@ class AppUpdaterTest {
             assertEquals(1.0f, lastProgress, 0.001f)
             assertEquals("VERIFIED_KOTLIN_APK_CONTENT", downloadedFile.readText(Charsets.UTF_8))
 
+            // Verified cached APK reuse
+            val reusedFile = client.downloadAndVerifyApk(manifest, tempDir)
+            assertTrue(reusedFile.exists())
+
             // Tampered SHA-256 must throw SecurityException and delete the file
             val badManifest = manifest.copy(
                 versionCode = 16,
@@ -133,5 +180,27 @@ class AppUpdaterTest {
         } finally {
             tempDir.deleteRecursively()
         }
+    }
+
+    @Test
+    fun `DefaultHttpUrlConnectionTransport rejects insecure plain http URLs`() {
+        val transport = DefaultHttpUrlConnectionTransport()
+        var threwGet = false
+        try {
+            transport.getJson("http://insecure.example.com/api", "token")
+        } catch (e: IllegalArgumentException) {
+            threwGet = true
+            assertTrue(e.message?.contains("HTTPS") == true)
+        }
+        assertTrue("Expected IllegalArgumentException for insecure getJson", threwGet)
+
+        var threwStream = false
+        try {
+            transport.openDownloadStream("http://insecure.example.com/file.apk")
+        } catch (e: IllegalArgumentException) {
+            threwStream = true
+            assertTrue(e.message?.contains("HTTPS") == true)
+        }
+        assertTrue("Expected IllegalArgumentException for insecure openDownloadStream", threwStream)
     }
 }

@@ -89,7 +89,7 @@ label{display:flex;gap:8px;align-items:center}
 <h2>How to install</h2>
 <ol>
 <li>Tap <strong>Download</strong> on an app below and open the file.</li>
-<li>If Android asks, allow your browser to <strong>install unknown apps</strong>, then install.</li>
+<li>If Android asks, allow your browser to <strong>install unknown apps</strong>, then install. (If Google Play Protect warns that the app is unrecognized, tap <em>More details</em> &rarr; <em>Install anyway</em>).</li>
 <li>Open the app, tap the <strong>Settings</strong> (gear) button and paste your access token so it can update itself.</li>
 </ol>
 <div class="row">

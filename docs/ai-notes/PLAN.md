@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-23 by Claude Code (Switchboard job 01M5GEGM008T2Z5G8W65RX5GET, Flutter SDK 0.4.0 release notes)
+Updated: 2026-10-25 by Antigravity (Flutter SDK action layout & in-flight hash fix; Kotlin SDK 404 parity & HTTPS; Worker Range, CORS & parallel R2)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -26,8 +26,8 @@ Updated: 2026-10-23 by Claude Code (Switchboard job 01M5GEGM008T2Z5G8W65RX5GET, 
 - [done] material_ui compatibility, Flutter SDK 0.3.0 (Phase 5 - Field diagnostics and hardening) - imports material_ui so the dialog opens and the tile follows the theme on Flutter 3.47; showDialog errors surface in tile and report; committed locally, not pushed or tagged
 - [done] Release notes in tile Details, Flutter SDK 0.4.0 (Phase 5 - Field diagnostics and hardening) - link reads "What's new" and opens notes (also when up to date), log behind "Show technical details"; upToDate carries manifest; not pushed or tagged
 - [done] Access grants, admin API and store page, Worker 0.2.0 / contract 1.1.0 (Phase 6 - Sharing apps with other people) - 33 worker tests; scripts and page checked end-to-end on local wrangler dev; not deployed
+- [done] Kotlin SDK parity: 404 and incomplete manifest as errors, HTTPS scheme enforcement, cached APK reuse (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt, DefaultHttpUrlConnectionTransport, and JUnit tests passing
 - [waiting] Deploy sharing and first real share (Phase 6 - Sharing apps with other people) - waiting on Molly: admin secret, updater.toml keys, wrangler deploy, real phone install
-- [not-started] Kotlin SDK parity: 404 and incomplete manifest as errors, diagnostics + log (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt:94 and :114-125, parked by D-0006; also port the "What's new" release-notes view to CheckForUpdateRow (D-0010)
 
 ## Next
 - Rebuild WordpressLiveBlogger and the other Flutter apps against app_updater_flutter 0.4.0 (no tag yet), then check Settings > App updates > Check for Update > What's new on a phone

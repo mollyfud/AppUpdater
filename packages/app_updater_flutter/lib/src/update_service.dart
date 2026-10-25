@@ -15,6 +15,16 @@ const appUpdaterFlutterVersion = '0.4.0';
 
 typedef ApkInstallerLauncher = Future<void> Function(String apkFilePath);
 
+class _DigestSink implements Sink<Digest> {
+  Digest? digest;
+
+  @override
+  void add(Digest data) => digest = data;
+
+  @override
+  void close() {}
+}
+
 class UpdateService {
   final String baseUrl;
   final String authToken;
@@ -325,9 +335,9 @@ class UpdateService {
     }
   }
 
-  /// Streams the APK download to disk, computes its SHA-256 digest in a streaming pass
-  /// (avoiding loading the full APK into memory), verifies the checksum, and launches the
-  /// Android package installer.
+  /// Streams the APK download to disk, computes its SHA-256 digest in a single streaming pass
+  /// in-flight (avoiding loading the full APK into memory or a second disk read), verifies
+  /// the checksum, and launches the Android package installer.
   Future<File> downloadAndInstall({
     required AppReleaseManifest manifest,
     required ValueChanged<double> onProgress,
@@ -341,7 +351,27 @@ class UpdateService {
     }
 
     final apkFile = File('${updateDir.path}/update-v${manifest.versionCode}.apk');
+
+    // Reuse verified cached APK if already fully downloaded and hash matches
     if (await apkFile.exists()) {
+      try {
+        final existingDigest = await sha256.bind(apkFile.openRead()).first;
+        if (existingDigest.toString().toLowerCase() == manifest.sha256.toLowerCase()) {
+          _log('cached APK already verified (sha256 match); skipping download');
+          onProgress(1.0);
+          if (_installerLauncher != null) {
+            await _installerLauncher(apkFile.path);
+          } else {
+            await OpenFilex.open(
+              apkFile.path,
+              type: 'application/vnd.android.package-archive',
+            );
+          }
+          return apkFile;
+        }
+      } catch (_) {
+        // If unreadable, fall through and delete
+      }
       await apkFile.delete();
     }
 
@@ -357,23 +387,32 @@ class UpdateService {
     final totalBytes = streamedResponse.contentLength ?? manifest.fileSize;
     int receivedBytes = 0;
 
+    final digestSink = _DigestSink();
+    final hashInput = sha256.startChunkedConversion(digestSink);
     final sink = apkFile.openWrite();
+
     try {
       await for (final chunk in streamedResponse.stream) {
         sink.add(chunk);
+        hashInput.add(chunk);
         receivedBytes += chunk.length;
         if (totalBytes > 0) {
           onProgress((receivedBytes / totalBytes).clamp(0.0, 1.0));
         }
       }
       await sink.flush();
+      hashInput.close();
+    } catch (e) {
+      await sink.close();
+      if (await apkFile.exists()) {
+        await apkFile.delete();
+      }
+      rethrow;
     } finally {
       await sink.close();
     }
 
-    // Stream file through SHA-256 without loading entire APK into memory at once
-    final digest = await sha256.bind(apkFile.openRead()).first;
-    final actualHash = digest.toString().toLowerCase();
+    final actualHash = (digestSink.digest?.toString() ?? '').toLowerCase();
     if (actualHash != manifest.sha256.toLowerCase()) {
       await apkFile.delete();
       throw Exception(

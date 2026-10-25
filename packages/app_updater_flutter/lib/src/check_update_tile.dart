@@ -160,38 +160,31 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 16),
-                    // Wrap instead of Row so the actions fit on < 400px widths
-                    Wrap(
-                      alignment: WrapAlignment.end,
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        if (manifest != null)
-                          TextButton(
-                            key: const Key('check-for-update-toggle-log'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: palette.secondaryButtonText,
-                            ),
-                            onPressed: () =>
-                                setDialogState(() => showLog = !showLog),
-                            child: Text(showLog
-                                ? 'Hide technical details'
-                                : 'Show technical details'),
-                          ),
-                        TextButton(
-                          key: const Key('check-for-update-details-close'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: palette.secondaryButtonText,
-                          ),
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          child: const Text('Close'),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
+              actions: [
+                if (manifest != null)
+                  TextButton(
+                    key: const Key('check-for-update-toggle-log'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: palette.secondaryButtonText,
+                    ),
+                    onPressed: () =>
+                        setDialogState(() => showLog = !showLog),
+                    child: Text(showLog
+                        ? 'Hide technical details'
+                        : 'Show technical details'),
+                  ),
+                TextButton(
+                  key: const Key('check-for-update-details-close'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: palette.secondaryButtonText,
+                  ),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
             );
           },
         );

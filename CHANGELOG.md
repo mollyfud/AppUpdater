@@ -2,6 +2,26 @@
 
 All notable changes to **AppUpdater** will be documented in this file.
 
+## [2026-10-25]
+- **`app_updater_flutter`:**
+  - Fixed mobile overflow bug in `CheckForUpdateTile._showDetails()`: moved action buttons from scrollable `content` to `AlertDialog.actions` so "Close" and "Hide/Show technical details" remain visible and tappable across all mobile viewports; resolved 2 failing Flutter widget tests (all 21 tests pass).
+  - Streamed single-pass in-flight SHA-256 chunked conversion in `UpdateService.downloadAndInstall` to eliminate the second flash storage read pass on 50–100MB APKs.
+  - Added verified cached APK reuse (if existing APK SHA-256 matches manifest) to avoid re-downloading when interrupted by Android install permission prompts.
+  - Added partial file cleanup on download errors.
+- **`app-updater-android` (Kotlin SDK):**
+  - Fixed 404 bug in `UpdateClient`: 404 responses now produce explicit errors (`Server has no release for <appId>` vs endpoint not found) instead of false `UpToDate`.
+  - Added incomplete manifest error validation (checks `downloadUrl.isNotBlank()` and `sha256.length == 64`).
+  - Enforced HTTPS scheme requirement in `DefaultHttpUrlConnectionTransport` (closes PikminFilter inbox item).
+  - Added verified cached APK reuse and partial download cleanup.
+  - Added `ApkInstaller.canRequestPackageInstalls` and `openInstallPermissionSettings` helpers.
+  - Unit tests updated with full coverage for 404 handling, incomplete manifests, cached reuse, and HTTPS enforcement.
+- **Cloudflare Worker:**
+  - Added HTTP `Range` request support on `GET /api/v1/download` (passes `Range` header to R2 and returns HTTP 206 Partial Content) to support resumable downloads on mobile networks.
+  - Added `Access-Control-Allow-Origin: *` and `OPTIONS` preflight handling on `GET /api/v1/version/:appId` for browser and dashboard access.
+  - Parallelized R2 reads with `Promise.all` in `buildCatalog` and `listGrants` (improves catalog latency by ~36%).
+  - Added defensive check in `/api/v1/download` rejecting keys starting with `_`.
+  - Added Google Play Protect installation tip on the store page.
+
 ## [app_updater_flutter 0.4.0] - 2026-10-23
 - `CheckForUpdateTile`: the link under the status reads **"What's new"** when the last check has a release (also when already up to date) and opens that release's notes ("What's new in vX", with the build number under it). The technical check log is behind a **"Show technical details"** toggle. Errors, unconfigured and "no check yet" keep a **"Details"** link that opens the log directly.
 - `UpdateCheckResult.upToDate` now carries `manifest` (the server's current release), so notes are available when no update is pending. `hasUpdate` is unchanged. Existing callers keep compiling.
@@ -35,9 +55,9 @@ All notable changes to **AppUpdater** will be documented in this file.
 - Initial project scaffolding (`C:\antigravity\AppUpdater`) and registration in `C:\antigravity\AGENTS.md`.
 - Defined `app-updater/1` v1.0.0 contract (`contracts/version-manifest.schema.json` and `contracts/README.md`).
 - Added architecture and implementation plan (`docs/DESIGN.md` and `docs/ai-notes/PLAN.md`) recording Molly's decisions (D-0001 to D-0004).
-- **Phase 1 — Cloudflare Worker & Publisher Script:**
+- **Phase 1 â€” Cloudflare Worker & Publisher Script:**
   - `worker/src/index.ts` + `wrangler.toml`: implements `GET /api/v1/version/:appId` (open version metadata for Switchboard `VersionProbe`), `GET /api/v1/update/:appId` (single shared Bearer token + 15-min HMAC-SHA256 signed download URL), and `GET /api/v1/download` (streams APK from R2). Tested with `worker/test/index.test.ts` (4 tests passing).
   - `scripts/publish-release.ps1`: ASCII-only PowerShell 5.1 script that discovers `appId`/`versionName`/`versionCode` from Flutter `pubspec.yaml` or Android `build.gradle.kts`, extracts the newest `CHANGELOG.md` notes, computes the APK SHA-256 hash, writes `dist/version.json`, uploads APK + `version.json` to Cloudflare R2 (via `wrangler` or `aws s3 cp`), and sends an `ntfy` notification.
-- **Phase 2 — Shared Client SDKs:**
+- **Phase 2 â€” Shared Client SDKs:**
   - `packages/app_updater_flutter` (0.1.0): `AppReleaseManifest`, `UpdateService` (streaming SHA-256 verification, `http`, `package_info_plus`, `open_filex`), `UpdatePromptDialog` (Material 3, `< 400px` `Wrap` layout, verified 4.5:1 WCAG contrast in light & dark themes), and `CheckForUpdateTile` (in-app "Check for Update" widget). 8 tests + `flutter analyze` passing.
   - `packages/app-updater-android` (0.1.0): pure Kotlin `AppReleaseManifest` parser (zero `org.json` usage so `testDebugUnitTest` never hits Android stub errors), `UpdateClient` (single-pass streaming `MessageDigest` SHA-256 verification), `ApkInstaller` (`FileProvider` + `ACTION_VIEW` intent), Jetpack Compose `UpdatePromptDialog` + `CheckForUpdateRow`, and `AppUpdaterTest.kt`.

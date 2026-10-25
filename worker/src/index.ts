@@ -28,7 +28,7 @@ export interface R2ListResultLike {
 }
 
 export interface R2BucketLike {
-  get(key: string): Promise<R2ObjectBodyLike | null>;
+  get(key: string, options?: { range?: Headers | unknown }): Promise<R2ObjectBodyLike | null>;
   put(key: string, value: string, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
   list(options?: { prefix?: string; delimiter?: string; cursor?: string }): Promise<R2ListResultLike>;
 }
@@ -74,13 +74,19 @@ type Viewer = { kind: "owner" } | { kind: "grant"; grant: AccessGrant };
 const APP_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/;
 const GRANT_ID_PATTERN = /^[a-f0-9]{16}$/;
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, extraHeaders?: Record<string, string>): Response {
+  const headers = new Headers({
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+  });
+  if (extraHeaders) {
+    for (const [k, v] of Object.entries(extraHeaders)) {
+      headers.set(k, v);
+    }
+  }
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store, no-cache, must-revalidate",
-    },
+    headers,
   });
 }
 
@@ -183,25 +189,27 @@ async function listAppIds(env: Env): Promise<string[]> {
 
 async function listGrants(env: Env): Promise<{ key: string; grant: AccessGrant }[]> {
   const res = await listAll(env, GRANT_PREFIX);
-  const grants: { key: string; grant: AccessGrant }[] = [];
-  for (const obj of res.objects) {
-    const grant = await readJson<AccessGrant>(env, obj.key);
-    if (grant) grants.push({ key: obj.key, grant });
-  }
-  return grants;
+  const items = await Promise.all(
+    res.objects.map(async (obj) => {
+      const grant = await readJson<AccessGrant>(env, obj.key);
+      return grant ? { key: obj.key, grant } : null;
+    })
+  );
+  return items.filter((g): g is NonNullable<typeof g> => g !== null);
 }
 
 async function buildCatalog(env: Env, viewer: Viewer) {
   const candidates =
     viewer.kind === "owner" || viewer.grant.apps.includes("*") ? await listAppIds(env) : viewer.grant.apps;
-  const apps = [];
-  for (const appId of candidates) {
-    const manifest = await readJson<AppReleaseManifest>(env, `${appId}/version.json`);
-    if (!manifest) continue;
-    const listing = await readListing(env, appId);
+  const appPromises = candidates.map(async (appId) => {
+    const [manifest, listing] = await Promise.all([
+      readJson<AppReleaseManifest>(env, `${appId}/version.json`),
+      readListing(env, appId),
+    ]);
+    if (!manifest) return null;
     const shareable = listing?.shareable === true;
-    if (viewer.kind === "grant" && !shareable) continue;
-    apps.push({
+    if (viewer.kind === "grant" && !shareable) return null;
+    return {
       appId,
       title: listing?.title || manifest.project || appId,
       summary: listing?.summary || "",
@@ -212,8 +220,10 @@ async function buildCatalog(env: Env, viewer: Viewer) {
       fileSize: manifest.fileSize,
       sha256: manifest.sha256,
       ...(viewer.kind === "owner" ? { shareable } : {}),
-    });
-  }
+    };
+  });
+  const resolved = await Promise.all(appPromises);
+  const apps = resolved.filter((a): a is NonNullable<typeof a> => a !== null);
   apps.sort((a, b) => a.title.localeCompare(b.title));
   return { viewer: viewer.kind === "grant" ? viewer.grant.name : null, apps };
 }
@@ -381,29 +391,45 @@ export default {
       return storeResponse(STORE_JS, "text/javascript; charset=utf-8");
     }
 
-    // 1. Open read-only version metadata for Switchboard VersionProbe
-    // GET /api/v1/version/:appId
-    if (url.pathname.startsWith("/api/v1/version/") && request.method === "GET") {
-      const appId = decodeURIComponent(url.pathname.slice("/api/v1/version/".length));
-      if (!appId || !APP_ID_PATTERN.test(appId)) {
-        return jsonResponse({ error: "Invalid appId" }, 400);
+    // 1. Open read-only version metadata for Switchboard VersionProbe (with open CORS for web hubs/dashboards)
+    // OPTIONS & GET /api/v1/version/:appId
+    if (url.pathname.startsWith("/api/v1/version/")) {
+      const corsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      };
+
+      if (request.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: corsHeaders });
       }
 
-      const manifestObj = await env.RELEASES_BUCKET.get(`${appId}/version.json`);
-      if (!manifestObj) {
-        return notFoundManifest();
-      }
+      if (request.method === "GET") {
+        const appId = decodeURIComponent(url.pathname.slice("/api/v1/version/".length));
+        if (!appId || !APP_ID_PATTERN.test(appId)) {
+          return jsonResponse({ error: "Invalid appId" }, 400, corsHeaders);
+        }
 
-      const manifest = await manifestObj.json<AppReleaseManifest>();
-      return jsonResponse({
-        schema: manifest.schema || "app-updater/1",
-        appId: manifest.appId,
-        project: manifest.project,
-        version: manifest.versionName,
-        versionName: manifest.versionName,
-        versionCode: manifest.versionCode,
-        releaseDate: manifest.releaseDate,
-      });
+        const manifestObj = await env.RELEASES_BUCKET.get(`${appId}/version.json`);
+        if (!manifestObj) {
+          return jsonResponse({ error: "App manifest not found" }, 404, corsHeaders);
+        }
+
+        const manifest = await manifestObj.json<AppReleaseManifest>();
+        return jsonResponse(
+          {
+            schema: manifest.schema || "app-updater/1",
+            appId: manifest.appId,
+            project: manifest.project,
+            version: manifest.versionName,
+            versionName: manifest.versionName,
+            versionCode: manifest.versionCode,
+            releaseDate: manifest.releaseDate,
+          },
+          200,
+          corsHeaders
+        );
+      }
     }
 
     // 2. Authenticated Client Update Check (owner token or per-person grant)
@@ -466,6 +492,7 @@ export default {
       if (
         !apkKey ||
         apkKey.includes("..") ||
+        apkKey.startsWith("_") ||
         !Number.isFinite(expires) ||
         !sig ||
         Math.floor(Date.now() / 1000) > expires
@@ -478,7 +505,11 @@ export default {
         return new Response("Invalid signature", { status: 403 });
       }
 
-      const apkObject = await env.RELEASES_BUCKET.get(apkKey);
+      const rangeHeader = request.headers.get("Range");
+      const apkObject = await env.RELEASES_BUCKET.get(
+        apkKey,
+        rangeHeader ? { range: request.headers } : undefined
+      );
       if (!apkObject || apkObject.body === null) {
         return new Response("APK file not found", { status: 404 });
       }
@@ -486,14 +517,19 @@ export default {
       const headers = new Headers();
       apkObject.writeHttpMetadata(headers);
       headers.set("Content-Type", "application/vnd.android.package-archive");
-      headers.set("Content-Length", apkObject.size.toString());
+      headers.set("Accept-Ranges", "bytes");
       const fileName = (apkKey.split("/").pop() || "app.apk").replace(/[^A-Za-z0-9._-]/g, "_");
       headers.set("Content-Disposition", `attachment; filename="${fileName}"`);
       if (apkObject.httpEtag) {
         headers.set("ETag", apkObject.httpEtag);
       }
 
-      return new Response(apkObject.body as BodyInit, { headers });
+      const isRange = Boolean(
+        rangeHeader && "range" in apkObject && (apkObject as { range?: unknown }).range
+      );
+      const status = isRange ? 206 : 200;
+
+      return new Response(apkObject.body as BodyInit, { status, headers });
     }
 
     return new Response("Not Found", { status: 404 });

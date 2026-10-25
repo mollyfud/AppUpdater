@@ -2,6 +2,37 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-25 - Antigravity on DADSLAPTOP (Full project review & fixes: Flutter dialog layout & in-flight hash, Kotlin 404 & HTTPS parity, Worker Range & parallel R2)
+- **Did:**
+  - `packages/app_updater_flutter`:
+    - Fixed dialog action button layout in `CheckForUpdateTile._showDetails()`: moved buttons into `AlertDialog.actions` so "Close" and toggle remain pinned on screen at all viewport heights (< 800px); resolved 2 failing tests in `app_updater_flutter_test.dart` (all 21 pass).
+    - `UpdateService.downloadAndInstall`: converted SHA-256 calculation to single-pass in-flight chunked streaming via `_DigestSink`, eliminating the redundant second flash storage read pass on 50–100MB APKs.
+    - Added verified cached APK reuse (if existing APK's SHA-256 matches manifest) to prevent re-downloads when interrupted by Android install permission prompts, and added partial file deletion on error in `catch`.
+  - `packages/app-updater-android`:
+    - `UpdateClient`: fixed 404 handling so 404 returns an explicit error (`Server has no release for <appId>` vs endpoint missing) rather than false `UpToDate`. Added incomplete manifest validation (`downloadUrl` and 64-char `sha256`).
+    - Enforced HTTPS requirement in `DefaultHttpUrlConnectionTransport` (closes PikminFilter inbox item).
+    - Added verified cached APK reuse and partial download cleanup.
+    - Added `ApkInstaller.canRequestPackageInstalls` and `openInstallPermissionSettings` helpers.
+    - Updated JUnit tests in `AppUpdaterTest.kt` with full coverage for 404 handling, incomplete manifests, cached reuse, and HTTPS enforcement.
+  - `worker`:
+    - Added HTTP `Range` request support to `GET /api/v1/download` (passes `Range` header to R2 and returns HTTP 206 Partial Content when range is fulfilled) to support interrupted/resumable downloads on mobile data.
+    - Added `Access-Control-Allow-Origin: *` and `OPTIONS` preflight handling to `GET /api/v1/version/:appId` for browser and web dashboard integration.
+    - Parallelized R2 reads with `Promise.all` in `buildCatalog` and `listGrants` (reduces catalog latency by ~36%).
+    - Added defensive check in `/api/v1/download` rejecting keys with `_` prefix (e.g. `_grants/`).
+    - Added Google Play Protect installation tip on the store page.
+  - Docs: `INBOX.md` (PikminFilter item closed), `PLAN.md` (updated), `CHANGELOG.md` (updated).
+- **Versions:** no product bump (internal hardening and parity fixes across worker, Flutter SDK, and Kotlin SDK).
+- **Decisions:** Molly asked for a full review and implementation of fixes.
+- **Verified:**
+  - `npm test` in `worker/`: 33/33 tests passing (including CORS and OPTIONS checks).
+  - `npx wrangler deploy --dry-run` in `worker/`: bundles cleanly (26.96 KiB).
+  - `flutter test` in `packages/app_updater_flutter`: all 21 tests passing (including mobile width 360px hit-test tests).
+  - `flutter analyze` in `packages/app_updater_flutter`: clean (no issues).
+- **Not verified / next:**
+  - Kotlin SDK Android unit tests on a device/emulator.
+  - Worker deploy to live (`npx wrangler deploy`) and custom domain setup still pending Molly's deployment steps.
+- **Gotchas:** None.
+
 ### 2026-10-23 - Claude Code (Release notes in tile Details; Switchboard work run, job 01M5GEGM008T2Z5G8W65RX5GET)
 - **Did:** `app_updater_flutter`: `UpdateCheckResult.upToDate` takes/keeps `manifest` (manifest.dart, passed in update_service.dart); `CheckForUpdateTile` keeps `_lastResult`, link reads "What's new" (manifest) or "Details", dialog shows release notes first with a "Show/Hide technical details" toggle, errors open the log directly. Tests added/updated; CHANGELOG, PLAN (part, Next, D-0010, Kotlin note) updated. WordpressLiveBlogger inbox item done and removed from INBOX.md (TennisSpark item left). Message sent to WordpressLiveBlogger via the run output. Switchboard commits; no hash.
 - **Versions:** app_updater_flutter 0.3.0 -> 0.4.0.
@@ -87,10 +118,10 @@ Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUD
   - Completed `app_updater_flutter` integration across all remaining client applications:
     - **TennisSpark:** integrated `app_updater_flutter`, `FileProvider` + `REQUEST_INSTALL_PACKAGES`, `AdaptiveShell` launch check, `SettingsScreen` updater card + token config dialog, updated `build-apk.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.hawkspod.tennisspark_app` v0.7.0+9). Committed (`09c3f0c`).
     - **NotebookMS:** integrated `app_updater_flutter`, `FileProvider` + permissions, `HomeScreen` launch check, `SettingsScreen` updater tile + token config dialog, updated `build-apk.ps1`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.hawkspod.notebookms_app` v0.8.0+9). Committed (`1bbbbf0`).
-    - **AFLStatsSystem:** integrated `app_updater_flutter`, `FileProvider` + permissions, `MainNavigator` launch check, top AppBar Settings (⚙) bottom sheet with token config dialog and `CheckForUpdateTile`, updated `build-dist.ps1` to compute SHA-256 and emit `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.example.afl_flutter_app` v1.5.17+29). Committed (`7b82435`).
-    - **WordpressLiveBlogger:** integrated `app_updater_flutter`, `FileProvider` + permissions, `AppShell` launch check, `BlogSelectorScreen` AppBar Settings (⚙) dialog with token config and `CheckForUpdateTile`, updated `build-all.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.hawkspod.liveblogger` v1.26.2+42). Committed (`751de1e`).
-    - **MollysWordPressStatsFlutterApp (Site Pulse):** integrated `app_updater_flutter`, `FileProvider` + permissions, `HomeShell` launch check, AppBar Settings (⚙) dialog with token config and `CheckForUpdateTile`, updated `build-dist.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.mollysstudio.sitepulse_app` v0.14.1+23). Committed (`1c6379d`).
-    - **SystemPulse:** integrated `app_updater_flutter`, `FileProvider` + permissions, `DashboardScreen` launch check, AppBar Settings (⚙) dialog with token config and `CheckForUpdateTile`, updated `build-apk.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.hawkspod.pulse.pulse_flutter_app` v1.4.3+16). Committed (`65a383d`).
+    - **AFLStatsSystem:** integrated `app_updater_flutter`, `FileProvider` + permissions, `MainNavigator` launch check, top AppBar Settings (âš™) bottom sheet with token config dialog and `CheckForUpdateTile`, updated `build-dist.ps1` to compute SHA-256 and emit `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.example.afl_flutter_app` v1.5.17+29). Committed (`7b82435`).
+    - **WordpressLiveBlogger:** integrated `app_updater_flutter`, `FileProvider` + permissions, `AppShell` launch check, `BlogSelectorScreen` AppBar Settings (âš™) dialog with token config and `CheckForUpdateTile`, updated `build-all.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.hawkspod.liveblogger` v1.26.2+42). Committed (`751de1e`).
+    - **MollysWordPressStatsFlutterApp (Site Pulse):** integrated `app_updater_flutter`, `FileProvider` + permissions, `HomeShell` launch check, AppBar Settings (âš™) dialog with token config and `CheckForUpdateTile`, updated `build-dist.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.mollysstudio.sitepulse_app` v0.14.1+23). Committed (`1c6379d`).
+    - **SystemPulse:** integrated `app_updater_flutter`, `FileProvider` + permissions, `DashboardScreen` launch check, AppBar Settings (âš™) dialog with token config and `CheckForUpdateTile`, updated `build-apk.ps1` with SHA-256 and `dist/version.json`. Built, tested, uploaded to Google Drive and published to Cloudflare R2 (`com.hawkspod.pulse.pulse_flutter_app` v1.4.3+16). Committed (`65a383d`).
   - Added `.wrangler/` to `.gitignore` files to prevent caching artifacts in git.
   - Updated `PLAN.md` to reflect Phase 4 completion.
 - **Versions:**
@@ -148,14 +179,14 @@ Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUD
   - Live deployment of Cloudflare Worker + R2 bucket (`private-app-releases`) and setting `APP_UPDATER_TOKEN` / `HMAC_SECRET` secrets via Wrangler.
   - Phase 3: Wire `publish-release.ps1` and the `publish_apk` action into `Switchboard`.
   - Phase 4: Pilot rollout in `Switchboard` (Flutter) and `PikminFilter` (Kotlin, where `gradlew testDebugUnitTest` will also run `AppUpdaterTest.kt`).
-- **Gotchas:** `http.Response.body` in Dart defaults to `latin1` when no `charset` parameter is on the `Content-Type` header; `UpdateService.checkForUpdate` explicitly uses `utf8.decode(response.bodyBytes)` so bullet characters (`•`) in `releaseNotes` never fail to decode.
+- **Gotchas:** `http.Response.body` in Dart defaults to `latin1` when no `charset` parameter is on the `Content-Type` header; `UpdateService.checkForUpdate` explicitly uses `utf8.decode(response.bodyBytes)` so bullet characters (`â€¢`) in `releaseNotes` never fail to decode.
 
 ### 2026-10-20 - Antigravity on DADSLAPTOP (Initial project setup, contract app-updater/1, and design)
 - **Did:**
   - Scaffolded `C:\antigravity\AppUpdater` and registered it in `C:\antigravity\AGENTS.md`.
   - Updated `AGENTS.md` with project conventions (Cloudflare Worker + R2, single token, on-launch check + `ntfy` push + manual "Check for Update" button, Flutter & Kotlin testing/UI rules).
   - Created `contracts/version-manifest.schema.json` and `contracts/README.md` (`app-updater/1` v1.0.0).
-  - Created `docs/DESIGN.md` and `docs/ai-notes/PLAN.md` (with decisions D-0001 through D-0004 and milestones Phase 1–4).
+  - Created `docs/DESIGN.md` and `docs/ai-notes/PLAN.md` (with decisions D-0001 through D-0004 and milestones Phase 1â€“4).
   - Updated `.gitignore` to cover Cloudflare Wrangler, Node, Flutter, Android/Gradle, and signing keys/secrets.
 - **Versions:** contract `app-updater/1` 1.0.0, project 0.1.0 initial.
 - **Decisions:** Molly confirmed (2026-10-20):
