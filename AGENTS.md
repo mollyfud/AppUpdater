@@ -19,6 +19,9 @@ Private in-app update gateway (**Cloudflare Worker + R2**), `app-updater/1` mani
   - Publishing is triggered via Switchboard's signed `publish_apk` project action (`high` risk, warned), never from inside an AI work run.
 
 ## Rules for this project
+
+### Flutter SDK
+- When a Flutter package imports package:material_ui, never assume flutter/material and material_ui widgets share Theme or MaterialLocalizations. Show dialogs with a localizations-free route and add a widget test under a plain package:flutter/material.dart MaterialApp too.
 - Standing rules belong here; session history belongs in `docs/ai-notes/HANDOFF.md`; project map lives in `docs/ai-notes/PLAN.md`.
 - Read `AGENTS.md`, `docs/ai-notes/HANDOFF.md`, `docs/ai-notes/PLAN.md`, and `docs/ai-notes/INBOX.md` before starting, and update `PLAN.md` + `HANDOFF.md` when you finish.
 - **Contract first:** `contracts/version-manifest.schema.json` (`app-updater/1`) is the single source of truth for `version.json`. Keep the Worker, `publish-release.ps1`, `app_updater_flutter`, and `app-updater-android` in sync with it.
