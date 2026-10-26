@@ -11,7 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'manifest.dart';
 
 /// SDK version reported in the update-check log. Bump together with `pubspec.yaml`.
-const appUpdaterFlutterVersion = '0.5.1';
+const appUpdaterFlutterVersion = '0.5.2';
 
 /// Thrown when a URL the SDK is asked to fetch is not `https://`.
 /// The message names only the scheme, never the URL (download URLs carry a signature).

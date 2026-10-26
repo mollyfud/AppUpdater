@@ -90,7 +90,21 @@ class _CheckForUpdateTileState extends State<CheckForUpdateTile> {
   Future<void> _showDetails() async {
     final report = widget.updateService.lastCheckReport;
     final manifest = _lastResult?.manifest;
-    await showUpdaterDialog<void>(
+    try {
+      await _openDetailsDialog(report, manifest);
+    } catch (e, st) {
+      widget.updateService.recordDialogFailure(e, st);
+      if (!mounted) return;
+      final reason = e is StateError ? e.message : '$e';
+      setState(() {
+        _statusMessage = 'Could not open details: $reason';
+        _isError = true;
+      });
+    }
+  }
+
+  Future<void> _openDetailsDialog(String report, AppReleaseManifest? manifest) {
+    return showUpdaterDialog<void>(
       context,
       builder: (dialogContext) {
         final palette =

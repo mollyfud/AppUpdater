@@ -2,6 +2,15 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-26 - Claude Code (Verify + close gaps, SDK 0.5.2; Switchboard work run for job 01M5DW3X00N4DTBHJ84GHP21A6)
+- **Did:** the ask's import/pubspec part (material_ui imports, `material_ui` dependency) was already done in 0.3.0/0.5.1, so no migration. `check_update_tile.dart`: `_showDetails` now catches errors (`recordDialogFailure`, tile shows `Could not open details: <reason>`); body moved to `_openDetailsDialog`. Tests: material_ui checkOnLaunch, dark `themeMode`, launch failure recorded, Details failure in tile, import guard. Fixed 3 existing flutter/material tests that failed on the first `flutter test` run since 0.5.0: their fixture was mandatory for build 10 (min 12), so no Later button; they now use `minRequiredVersionCode: 1`. Bumped to 0.5.2 (pubspec, `appUpdaterFlutterVersion`), CHANGELOG, PLAN (part done, Next, D-0013). Switchboard commits; no hash.
+- **Versions:** app_updater_flutter 0.5.1 -> 0.5.2.
+- **Decisions:** Molly (2026-10-26): tag `app_updater_flutter-v0.5.2`, smaller verify-and-close-gaps plan (D-0013).
+- **Verified:** `flutter analyze` clean; `flutter test` 36/36 pass (before changes: 28 pass, 3 fail, the fixture issue above); `pubspec.lock` unchanged in `git status`.
+- **Not verified / next:** the tag is NOT created: the run commits after finishing and git tag/history commands are denied, so there is nothing to tag yet. After the job commit, Molly runs (each separately):
+  `git tag -a app_updater_flutter-v0.5.2 -m "app_updater_flutter 0.5.2"`, `git push origin main`, `git push origin app_updater_flutter-v0.5.2`. Then rebuild apps and check a release APK on a phone (launch dialog, Settings > Check for Update, dark tile). INBOX TennisSpark item stays open until the tag is pushed; its workers.dev URL removal stays parked (needs rewriting other agents' entries, and going public is Molly's call).
+- **Gotchas:** the "Later" button is hidden for mandatory updates; fixtures with the default `minRequiredVersionCode: 12` against build 10 are mandatory.
+
 ### 2026-10-25 - Claude Code (Update dialog under flutter/material; Switchboard work run for job 01M5S3YNR598AHG696ZJ10S3JY)
 - **Did:** new `lib/src/host_material.dart` (`showUpdaterDialog` via `RawDialogRoute`, `ensureMaterialContext`, `hostBrightness`, `describeRelease`); `check_update_tile.dart` and `update_dialog.dart` use it, bangs removed, titles handle empty versionName, `semanticLabel` added; `update_service.dart` `recordDialogFailure` logs 3 stack frames; `manifest.dart` tolerant `_str`/`_int` parsers, list notes, any-Map artifacts. Tests added (flutter/material light+dark, checkOnLaunch, required-only manifest, tolerance); failure test now expects "No Navigator above the update widget". CHANGELOG and PLAN updated. Switchboard commits; no hash.
 - **Versions:** app_updater_flutter 0.5.0 -> 0.5.1. The plan said 0.4.0 -> 0.4.1, but the repo was already at 0.5.0 (https-only entry), so I bumped the patch from there.

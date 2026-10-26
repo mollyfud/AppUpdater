@@ -2,6 +2,17 @@
 
 All notable changes to **AppUpdater** will be documented in this file.
 
+## [app_updater_flutter 0.5.2] - 2026-10-26
+
+### Fixed
+- `CheckForUpdateTile`: a failure opening the "What's new" / Details dialog is now caught. The tile shows `Could not open details: <reason>` and the check report gets a `dialog error:` line, instead of the error vanishing.
+
+### Tests
+- New widget tests under a `material_ui` `MaterialApp`: `checkOnLaunch` opens the dialog, `themeMode: dark` gives the dark tile and dialog palette, a `checkOnLaunch` failure is recorded in the report without throwing, and a Details failure shows in the tile.
+- Import guard: only `lib/src/host_material.dart` may import `package:flutter/material.dart`, and only with a prefix.
+- The three `flutter/material` tests that tap "Later" now use a non-mandatory manifest (they failed because the fixture was mandatory for build 10).
+- First version checked with `flutter test` since 0.5.0.
+
 ## [app_updater_flutter 0.5.1] - 2026-10-25
 - Fixed: the update dialog could not be shown after a successful check in apps using `package:flutter/material.dart` (SystemPulse 1.4.5: "Null check operator used on a null value" in release, "No MaterialLocalizations found" in debug and tests). Cause (from source, not reproduced in the run): since 0.3.0 the SDK uses `package:material_ui`, whose `showDialog` looks up material_ui's `MaterialLocalizations` on the caller's context; a flutter/material `MaterialApp` only provides flutter/material's, so the lookup returned null. The same mismatch made the tile and dialog ignore a flutter/material app's dark theme.
 - Fix: new internal `lib/src/host_material.dart`. `showUpdaterDialog` pushes a `RawDialogRoute` (needs no localizations) on the root navigator with the caller's inherited themes, wraps the content with material_ui localizations and a `Theme` when the host lacks them, and throws a clear `StateError` when there is no Navigator (e.g. widget placed in `MaterialApp.builder`). `hostBrightness` reads the theme of either Material flavour. Removed the `result.manifest!` bangs; `AlertDialog` has an explicit `semanticLabel`. The tile status now reads "... is available but the update dialog could not be shown: <reason>", and `recordDialogFailure` logs the first 3 stack frames.

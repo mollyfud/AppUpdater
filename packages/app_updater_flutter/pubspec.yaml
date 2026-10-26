@@ -1,6 +1,6 @@
 name: app_updater_flutter
 description: Shared private in-app update client for Molly's Flutter applications (app-updater/1 contract).
-version: 0.5.1
+version: 0.5.2
 publish_to: none
 
 environment:

@@ -530,7 +530,8 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-        final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14), 200));
+        // minRequiredVersionCode 1: a non-mandatory update, so the Later button exists
+        final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14, minRequiredVersionCode: 1), 200));
         await tester.pumpWidget(
           fm.MaterialApp(
             theme: fm.ThemeData(brightness: brightness),
@@ -567,7 +568,7 @@ void main() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
       });
-      final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14), 200));
+      final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14, minRequiredVersionCode: 1), 200));
       late BuildContext ctx;
       await tester.pumpWidget(
         fm.MaterialApp(home: fm.Scaffold(body: Builder(builder: (c) {
@@ -582,6 +583,120 @@ void main() {
       await tester.tap(find.byKey(const Key('update-later-button')));
       await tester.pumpAndSettle();
       expect((await future).hasUpdate, isTrue);
+    });
+
+    testWidgets('material_ui app: checkOnLaunch opens the dialog', (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14, minRequiredVersionCode: 1), 200));
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: Builder(builder: (c) {
+          ctx = c;
+          return const SizedBox();
+        }))),
+      );
+      final future = UpdatePromptDialog.checkOnLaunch(ctx, updateService: service);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Update Now'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('update-later-button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Update Now'), findsNothing);
+      expect((await future).hasUpdate, isTrue);
+    });
+
+    testWidgets('material_ui app with themeMode dark: tile and dialog use the dark palette', (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14, minRequiredVersionCode: 1), 200));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(brightness: Brightness.light),
+          darkTheme: ThemeData(brightness: Brightness.dark),
+          themeMode: ThemeMode.dark,
+          home: Scaffold(body: CheckForUpdateTile(updateService: service)),
+        ),
+      );
+      final dark = UpdateDialogColors.forBrightness(Brightness.dark);
+      final tileBox = tester.widget<Container>(
+        find.ancestor(of: find.text('App Updates'), matching: find.byType(Container)).first,
+      );
+      expect((tileBox.decoration as BoxDecoration).color, dark.notesBoxBackground);
+
+      await tester.tap(find.byKey(const Key('check-for-update-button')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Update Now'), findsOneWidget);
+      final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
+      expect(dialog.backgroundColor, dark.dialogBackground);
+    });
+
+    testWidgets('material_ui app: checkOnLaunch failure is recorded, not thrown', (tester) async {
+      final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 14), 200));
+      // MaterialApp.builder sits above the Navigator, so showing the dialog fails.
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: const SizedBox(),
+          builder: (context, child) {
+            ctx = context;
+            return child!;
+          },
+        ),
+      );
+      final result = await tester.runAsync(
+        () => UpdatePromptDialog.checkOnLaunch(ctx, updateService: service),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(result!.hasUpdate, isTrue);
+      expect(service.lastCheckReport, contains('dialog error:'));
+      expect(service.lastCheckReport, contains('No Navigator above the update widget'));
+    });
+
+    testWidgets('details failure is shown in the tile status and the report', (tester) async {
+      final service = _serviceReturning((_) => _jsonResponse(_sampleManifestJson(versionCode: 10), 200));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: const SizedBox(),
+          builder: (context, child) => Stack(
+            children: [
+              child!,
+              Material(child: Align(alignment: Alignment.topCenter, child: CheckForUpdateTile(updateService: service))),
+            ],
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const Key('check-for-update-button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('check-for-update-details')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final status = tester.widget<Text>(find.byKey(const Key('check-for-update-status'))).data!;
+      expect(status, contains('Could not open details'));
+      expect(service.lastCheckReport, contains('dialog error:'));
+    });
+
+    test('only host_material.dart imports flutter/material, and with a prefix', () {
+      final offenders = <String>[];
+      for (final f in Directory('lib').listSync(recursive: true).whereType<File>()) {
+        if (!f.path.endsWith('.dart')) continue;
+        final isHost = f.path.replaceAll('\\', '/').endsWith('lib/src/host_material.dart');
+        for (final line in f.readAsLinesSync()) {
+          if (!line.trimLeft().startsWith('import') || !line.contains('package:flutter/material.dart')) continue;
+          if (!isHost || !line.contains(' as fm')) offenders.add('${f.path}: $line');
+        }
+      }
+      expect(offenders, isEmpty);
     });
 
     testWidgets('manifest with only the required fields still opens the dialog', (tester) async {

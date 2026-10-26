@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-25 by Claude Code (job 01M5S3YNR598AHG696ZJ10S3JY)
+Updated: 2026-10-26 by Claude Code (job 01M5DW3X00N4DTBHJ84GHP21A6)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -29,16 +29,15 @@ Updated: 2026-10-25 by Claude Code (job 01M5S3YNR598AHG696ZJ10S3JY)
 - [done] Kotlin SDK parity: 404 and incomplete manifest as errors, HTTPS scheme enforcement, cached APK reuse (Phase 5 - Field diagnostics and hardening) - app-updater-android UpdateClient.kt, DefaultHttpUrlConnectionTransport, and JUnit tests passing
 - [done] Publisher verifies APK version (Phase 5 - Field diagnostics and hardening) - publish-release 0.2.0 refuses an APK whose aapt2 badging differs from the manifest or when aapt2 is missing; written but not yet run (PowerShell blocked in the work run)
 - [done] HTTPS-only update and download URLs, Kotlin SDK 0.2.0 / Flutter SDK 0.5.0 (Phase 5 - Field diagnostics and hardening) - both SDKs refuse non-https check and download URLs, no localhost exception; Flutter tests + analyze pass, Kotlin tests not run yet
-- [in-progress 80%] Dialog works under flutter/material and material_ui apps, Flutter SDK 0.5.1 (Phase 5 - Field diagnostics and hardening) - code, tests and analyze written (analyze clean); flutter test not run in the run, release-APK check on a phone left
+- [done] Dialog works under flutter/material and material_ui apps, Flutter SDK 0.5.2 (Phase 5 - Field diagnostics and hardening) - Details failures now shown in the tile; material_ui tests (launch, dark, failures) and import guard added; analyze clean, flutter test 36/36 pass; phone check of a release APK is Molly's
 - [waiting] Deploy sharing and first real share (Phase 6 - Sharing apps with other people) - waiting on Molly: admin secret, updater.toml keys, wrangler deploy, real phone install
 
 ## Next
-- Run `flutter test` in packages/app_updater_flutter (not run in job 01M5S3YNR598AHG696ZJ10S3JY), then rebuild SystemPulse against 0.5.1 and confirm the update dialog opens in a release APK
+- Molly: tag the job's commit and push main and the tag (commands in HANDOFF 2026-10-26), then rebuild the Flutter apps against 0.5.2 and check a release APK on a phone (launch dialog, dark theme)
 - Molly: run the publish-release 0.2.0 checks from HANDOFF (not run yet), then publish SystemPulse 1.4.7+20 via publish_apk to replace the wrong live 1.4.6 manifest
 - Molly: run `.\gradlew :app-updater-android:testDebugUnitTest` from a build that includes the module (e.g. PikminFilter); then rebuild PikminFilter against app-updater-android 0.2.0
 - Rebuild WordpressLiveBlogger and the other Flutter apps against app_updater_flutter 0.5.0 (https-only; no tag yet), then check Settings > App updates > Check for Update > What's new on a phone
 - Molly: deploy sharing (Worker 0.2.0) and the update.aflspace.com custom domain: set the new APP_UPDATER_ADMIN_TOKEN secret, add gateway_url (https://update.aflspace.com) + admin_token to updater.toml, deploy, check /health on the new domain, then a first real grant + listing (steps in HANDOFF 2026-10-21)
-- Molly: tag AppUpdater (main is pushed; no release tag yet), then rebuild TennisSpark, NotebookMS, AFLStatsSystem, WordpressLiveBlogger, Site Pulse, SystemPulse and the Switchboard app on Flutter 3.47 against it
 - Molly: send the hub message to TennisSpark and run a TennisSpark job (Details view, gateway URL https://molly-app-updater.mollysoft.workers.dev, app id com.hawkspod.tennisspark_app, bump past build 11), build it, sideload once from Google Drive, then read Settings > App updates > Details
 - Then publish that build plus one more and confirm the phone self-updates without Google Drive
 - Then Kotlin SDK parity for app-updater-android
@@ -59,6 +58,7 @@ Updated: 2026-10-25 by Claude Code (job 01M5S3YNR598AHG696ZJ10S3JY)
 
 - [D-0011] 2026-10-25 Molly: publish-release.ps1 refuses when aapt2 can't be found, unless -SkipApkCheck is passed explicitly
 - [D-0012] 2026-10-24 Molly: https only in both SDKs, no localhost exception
+- [D-0013] 2026-10-26 Molly: per-component release tags (`app_updater_flutter-vX.Y.Z`); job 01M5DW3X00N4DTBHJ84GHP21A6 is a verify + close-gaps release rather than a re-migration
 
 ## Ideas
 - [I-0001] 2026-10-20, Molly (later): Windows desktop .zip self-updater using the artifacts map in version.json - docs/DESIGN.md
