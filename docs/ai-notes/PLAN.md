@@ -1,5 +1,5 @@
 # Project map
-Updated: 2026-10-26 by Claude Code (job 01M5DW3X00N4DTBHJ84GHP21A6)
+Updated: 2026-10-31 by Antigravity (job 01M5B9Q60033PBGT28HE0DD3HP)
 
 <!-- How to keep this file: skills/project_map.md (format: Switchboard contracts/README.md section 16).
      Update it at each milestone and before your handover entry. -->
@@ -15,7 +15,7 @@ Updated: 2026-10-26 by Claude Code (job 01M5DW3X00N4DTBHJ84GHP21A6)
 ## Parts
 - [done] Project scaffolding and design (Phase 1 - Contract and Cloudflare gateway) - repo initialized, docs/DESIGN.md and contracts/version-manifest.schema.json written
 - [done] Contract app-updater/1 (Phase 1 - Contract and Cloudflare gateway) - 1.0.0, contracts/version-manifest.schema.json and contracts/README.md
-- [done] Cloudflare Worker and R2 gateway (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, worker deployed at https://molly-app-updater.mollysoft.workers.dev, private-app-releases R2 bucket live
+- [done] Cloudflare Worker and R2 gateway (Phase 1 - Contract and Cloudflare gateway) - 0.1.0, worker deployed at the gateway URL, see Switchboard/updater config, private-app-releases R2 bucket live
 - [done] Publisher script publish-release.ps1 (Phase 1 - Contract and Cloudflare gateway) - 0.2.0, SHA-256, version.json generation, R2 upload via Wrangler, ntfy notification, aapt2 APK check
 - [done] Flutter SDK app_updater_flutter (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, UpdateService streaming SHA-256, UpdatePromptDialog, CheckForUpdateTile, 8 tests + flutter analyze passing
 - [done] Android Kotlin SDK app-updater-android (Phase 2 - Flutter and Kotlin SDKs) - 0.1.0, pure Kotlin JSON parser (no org.json), UpdateClient streaming SHA-256, ApkInstaller, Compose UpdatePromptDialog + CheckForUpdateRow, JUnit tests
@@ -33,12 +33,12 @@ Updated: 2026-10-26 by Claude Code (job 01M5DW3X00N4DTBHJ84GHP21A6)
 - [waiting] Deploy sharing and first real share (Phase 6 - Sharing apps with other people) - waiting on Molly: admin secret, updater.toml keys, wrangler deploy, real phone install
 
 ## Next
-- Molly: tag the job's commit and push main and the tag (commands in HANDOFF 2026-10-26), then rebuild the Flutter apps against 0.5.2 and check a release APK on a phone (launch dialog, dark theme)
+- Molly: push main, create tags app_updater_flutter-v0.5.2 and v0.5.2, push tags to origin, and change repo visibility to public on GitHub
+- TennisSpark / client apps: point app_updater_flutter git dependency to public repo with ref app_updater_flutter-v0.5.2, rebuild and verify
 - Molly: run the publish-release 0.2.0 checks from HANDOFF (not run yet), then publish SystemPulse 1.4.7+20 via publish_apk to replace the wrong live 1.4.6 manifest
 - Molly: run `.\gradlew :app-updater-android:testDebugUnitTest` from a build that includes the module (e.g. PikminFilter); then rebuild PikminFilter against app-updater-android 0.2.0
-- Rebuild WordpressLiveBlogger and the other Flutter apps against app_updater_flutter 0.5.0 (https-only; no tag yet), then check Settings > App updates > Check for Update > What's new on a phone
 - Molly: deploy sharing (Worker 0.2.0) and the update.aflspace.com custom domain: set the new APP_UPDATER_ADMIN_TOKEN secret, add gateway_url (https://update.aflspace.com) + admin_token to updater.toml, deploy, check /health on the new domain, then a first real grant + listing (steps in HANDOFF 2026-10-21)
-- Molly: send the hub message to TennisSpark and run a TennisSpark job (Details view, gateway URL https://molly-app-updater.mollysoft.workers.dev, app id com.hawkspod.tennisspark_app, bump past build 11), build it, sideload once from Google Drive, then read Settings > App updates > Details
+- Molly: send the hub message to TennisSpark and run a TennisSpark job (Details view, gateway URL, see Switchboard/updater config, app id com.hawkspod.tennisspark_app, bump past build 11), build it, sideload once from Google Drive, then read Settings > App updates > Details
 - Then publish that build plus one more and confirm the phone self-updates without Google Drive
 - Then Kotlin SDK parity for app-updater-android
 

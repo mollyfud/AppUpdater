@@ -2,6 +2,31 @@
 
 Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUDE.md` = `~/.gemini/AGENTS.md`).
 
+### 2026-10-31 - Antigravity on DADSLAPTOP (Sanitize Worker URL and prepare release tagging for public repo; Switchboard work run for job 01M5B9Q60033PBGT28HE0DD3HP)
+- **Did:**
+  - Audited all repository files for identifying Cloudflare Worker / `*.workers.dev` URLs.
+  - Sanitized the live worker URL in `docs/ai-notes/HANDOFF.md` (line 147) and `docs/ai-notes/PLAN.md` (lines 18 and 41), replacing with "the gateway URL, see Switchboard/updater config".
+  - Resolved and closed the cross-project inbox item from TennisSpark in `docs/ai-notes/INBOX.md` ("get the repo ready to go public, then tag a release").
+  - Updated `docs/ai-notes/PLAN.md` header timestamp and `## Next` items.
+  - Documented post-run commands for Molly to push `main`, create and push release tags `app_updater_flutter-v0.5.2` and `v0.5.2`, and toggle GitHub repository visibility to Public.
+- **Versions:** no product change (documentation & release preparation).
+- **Decisions:** Molly approved keeping past git commit history untouched without rebasing; tag both canonical component-scoped tag `app_updater_flutter-v0.5.2` and root alias `v0.5.2`.
+- **Verified:** URL sanitization audit across all repository files; 0 occurrences of `mollysoft` or live `*.workers.dev` hostnames remain in any tracked file.
+- **Not verified / next:**
+  - Network and git tag/push commands are denied inside the Switchboard work run sandbox. Switchboard will commit the run's changes locally.
+  - Molly executes post-run host commands from `C:\antigravity\AppUpdater`:
+    ```powershell
+    git push origin main
+    git tag -a app_updater_flutter-v0.5.2 -m "app_updater_flutter 0.5.2"
+    git tag -a v0.5.2 -m "v0.5.2"
+    git push origin app_updater_flutter-v0.5.2
+    git push origin v0.5.2
+    ```
+  - Molly changes GitHub repository visibility to Public (`gh repo edit mollyfud/AppUpdater --visibility public` or via GitHub web settings).
+  - TennisSpark and other client apps update `app_updater_flutter` dependency in `pubspec.yaml` to point to `git: url: https://github.com/mollyfud/AppUpdater.git, path: packages/app_updater_flutter, ref: app_updater_flutter-v0.5.2`.
+- **Inbox:** done - from TennisSpark / Claude Code on DADSLAPTOP: "get the repo ready to go public, then tag a release" (closed in this entry).
+- **Gotchas:** Past git history commits prior to this sanitization retain the old URL per Molly's decision to avoid rewriting git history.
+
 ### 2026-10-26 - Claude Code (Verify + close gaps, SDK 0.5.2; Switchboard work run for job 01M5DW3X00N4DTBHJ84GHP21A6)
 - **Did:** the ask's import/pubspec part (material_ui imports, `material_ui` dependency) was already done in 0.3.0/0.5.1, so no migration. `check_update_tile.dart`: `_showDetails` now catches errors (`recordDialogFailure`, tile shows `Could not open details: <reason>`); body moved to `_openDetailsDialog`. Tests: material_ui checkOnLaunch, dark `themeMode`, launch failure recorded, Details failure in tile, import guard. Fixed 3 existing flutter/material tests that failed on the first `flutter test` run since 0.5.0: their fixture was mandatory for build 10 (min 12), so no Later button; they now use `minRequiredVersionCode: 1`. Bumped to 0.5.2 (pubspec, `appUpdaterFlutterVersion`), CHANGELOG, PLAN (part done, Next, D-0013). Switchboard commits; no hash.
 - **Versions:** app_updater_flutter 0.5.1 -> 0.5.2.
@@ -144,7 +169,7 @@ Newest entries first. Rules: `AGENTS.md`, and the global rules (`~/.claude/CLAUD
   - Real diagnosis on the phone (rebuild TennisSpark, read Settings > App updates / Details). Sent to TennisSpark via the run's messages.
   - Kotlin parity (PLAN part, not started).
 - **Inbox:** done - "from TennisSpark: update check says 'up to date' with no way to see why" (this entry).
-- **Gotchas:** `UpdatePromptDialog.checkOnLaunch` stays silent on errors, so the new 404/incomplete errors only surface via the tile or `lastCheckReport`, not on launch. The tile's updateAvailable text is unchanged ("Update vX (build N) is available!"). The log keeps the raw `buildNumber` string so a non-numeric build number (parsed as 0) is visible. Lead from planning: Switchboard's default gateway is `https://updater.mollyfud.com` while the live Worker is `https://molly-app-updater.mollysoft.workers.dev`; if an app copied that default, the new log will show "Update endpoint not found" or a connect error.
+- **Gotchas:** `UpdatePromptDialog.checkOnLaunch` stays silent on errors, so the new 404/incomplete errors only surface via the tile or `lastCheckReport`, not on launch. The tile's updateAvailable text is unchanged ("Update vX (build N) is available!"). The log keeps the raw `buildNumber` string so a non-numeric build number (parsed as 0) is visible. Lead from planning: Switchboard's default gateway is `https://updater.mollyfud.com` while the live Worker is the gateway URL, see Switchboard/updater config; if an app copied that default, the new log will show "Update endpoint not found" or a connect error.
 
 ### 2026-10-20 - Antigravity on DADSLAPTOP (Full client app rollout completed across all Flutter apps)
 - **Did:**
